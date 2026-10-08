@@ -18,6 +18,7 @@ import { AuthenticityError, InputError, IntegrityError, ProofError } from "../er
 import { poseidonCommitment } from "../commitment.js";
 import { parseFieldElement } from "../field.js";
 import { checkIntegrity } from "../integrity/check.js";
+import { checkKeyBinding } from "../integrity/keys.js";
 import { proveToFile } from "../prover/prove.js";
 import { verify } from "../verifier/verify.js";
 import {
@@ -46,6 +47,8 @@ function helpText() {
   aegisproof-mini prove --input <file> --output <file>
   aegisproof-mini verify --proof <file>
   aegisproof-mini integrity
+  aegisproof-mini key-info
+  aegisproof-mini keys-check
   aegisproof-mini test
   aegisproof-mini commit --secret <decimal>
   aegisproof-mini sign --public-key-out <file> --signature-out <file> [--secret-key-out <file>]
@@ -143,6 +146,45 @@ async function commandIntegrity(args) {
   } catch (err) {
     if (err instanceof IntegrityError) fail(err.message, 2);
     fail("完全性検証に失敗しました", 2);
+  }
+}
+
+function printKeyReport(report) {
+  console.log(`protocol ${report.protocol}`);
+  console.log(`curve ${report.curve}`);
+  console.log(`snarkjsCurve ${report.snarkjsCurve}`);
+  console.log(`nPublic ${report.nPublic}`);
+  console.log(`constraints ${report.constraints}`);
+  console.log(`privateInputs ${report.privateInputs}`);
+  console.log(`publicInputs ${report.publicInputs}`);
+  console.log(`r1csSha256 ${report.artifacts["circuit.r1cs"]}`);
+  console.log(`zkeySha256 ${report.artifacts["circuit.zkey"]}`);
+  console.log(`verificationKeySha256 ${report.artifacts["verification_key.json"]}`);
+  console.log(`wasmSha256 ${report.artifacts["circuit.wasm"]}`);
+  console.log(`manifestSha256 ${report.manifestSha256}`);
+  console.log("ceremony single-contributor development. production=false");
+  console.log("note setup entropy destruction is not established by this command");
+}
+
+async function commandKeyInfo(args) {
+  if (args.length) fail(helpText(), 4);
+  try {
+    printKeyReport(await checkKeyBinding());
+  } catch (err) {
+    if (err instanceof IntegrityError) fail(err.message, 2);
+    fail("鍵情報の確認に失敗しました", 2);
+  }
+}
+
+async function commandKeysCheck(args) {
+  if (args.length) fail(helpText(), 4);
+  try {
+    const report = await checkKeyBinding();
+    console.log("keys: ok");
+    printKeyReport(report);
+  } catch (err) {
+    if (err instanceof IntegrityError) fail(err.message, 2);
+    fail("鍵の対応確認に失敗しました", 2);
   }
 }
 
@@ -273,6 +315,8 @@ const commands = {
   prove: commandProve,
   verify: commandVerify,
   integrity: commandIntegrity,
+  "key-info": commandKeyInfo,
+  "keys-check": commandKeysCheck,
   test: commandTest,
   commit: commandCommit,
   sign: commandSign,

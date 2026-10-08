@@ -120,6 +120,7 @@ async function main() {
   await snarkjs.powersOfTau.preparePhase2(ptau1, ptauFinal, logger);
   await snarkjs.zKey.newZKey(r1csPath, ptauFinal, zkey0, logger);
   await snarkjs.zKey.contribute(zkey0, zkeyFinal, PHASE2_NAME, PHASE2_ENTROPY, logger);
+  // snarkjs zkey verify needs the powers-of-tau file. It is still on disk here, and is deleted below.
   const verified = await snarkjs.zKey.verifyFromR1cs(r1csPath, ptauFinal, zkeyFinal, logger);
   if (verified !== true) throw new Error("zkey の検証に失敗しました");
 
@@ -166,8 +167,29 @@ async function main() {
     },
     artifacts,
   };
+  const files = {};
+  for (const [name, rel] of Object.entries(ARTIFACTS)) {
+    const filePath = path.join(root, rel);
+    files[name] = {
+      path: rel,
+      sha256: artifacts[name],
+      bytes: fs.statSync(filePath).size,
+    };
+  }
+  manifest.files = files;
+  manifest.binding = {
+    circuitSource: "circuit/main.circom",
+    r1cs: ARTIFACTS["circuit.r1cs"],
+    zkey: ARTIFACTS["circuit.zkey"],
+    verificationKey: ARTIFACTS["verification_key.json"],
+    protocol: "groth16",
+    curve: "bn254",
+    snarkjsCurveName: "bn128",
+    nPublic: 1,
+  };
   writeManifest(root, manifest);
   fs.rmSync(setupDir, { recursive: true, force: true });
+  log("artifacts/baseline.json は更新していません。鍵を差し替えるときは baseline を同じ commit で明示的に更新してください");
 
   const integrity = await checkIntegrity(root);
   log("manifest と成果物の SHA-256 が一致しました");

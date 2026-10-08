@@ -34,5 +34,37 @@
     "circuit.r1cs": "29027acc31b3440d5a8b42df2be4e7db2ef86b543b69823b2bd5c9b896d1516e",
     "circuit.zkey": "5b6a568c2ff858df76d6b09c4dd3eb8779a2ebf121f02d42ffc400ed9e207ac9",
     "verification_key.json": "cad6c28700b34d60159ee1ab40c91878d0436aa677d6a97741dacea5803b0485"
+  },
+  "files": {
+    "circuit.wasm": {
+      "path": "circuit/main.wasm",
+      "sha256": "16fdc8b9caed938299b530a6ebc9885dfdf49abe3c2d73d5cbb9ed1531fb79ea",
+      "bytes": 1633973
+    },
+    "circuit.r1cs": {
+      "path": "circuit/main.r1cs",
+      "sha256": "29027acc31b3440d5a8b42df2be4e7db2ef86b543b69823b2bd5c9b896d1516e",
+      "bytes": 53212
+    },
+    "circuit.zkey": {
+      "path": "circuit/mini.zkey",
+      "sha256": "5b6a568c2ff858df76d6b09c4dd3eb8779a2ebf121f02d42ffc400ed9e207ac9",
+      "bytes": 186592
+    },
+    "verification_key.json": {
+      "path": "keys/verification_key.json",
+      "sha256": "cad6c28700b34d60159ee1ab40c91878d0436aa677d6a97741dacea5803b0485",
+      "bytes": 3158
+    }
+  },
+  "binding": {
+    "circuitSource": "circuit/main.circom",
+    "r1cs": "circuit/main.r1cs",
+    "zkey": "circuit/mini.zkey",
+    "verificationKey": "keys/verification_key.json",
+    "protocol": "groth16",
+    "curve": "bn254",
+    "snarkjsCurveName": "bn128",
+    "nPublic": 1
   }
 }

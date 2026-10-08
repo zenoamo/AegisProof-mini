@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import { describe, test } from "node:test";
 import { ARTIFACTS } from "../../src/constants.js";
@@ -43,6 +44,15 @@ describe("ML-DSA-87 artifact authenticity", () => {
       }
       const next = structuredClone(before.manifest);
       next.artifacts = artifacts;
+      if (next.files) {
+        for (const [name, rel] of Object.entries(ARTIFACTS)) {
+          next.files[name] = {
+            ...next.files[name],
+            sha256: artifacts[name],
+            bytes: fs.statSync(path.join(dir, rel)).size,
+          };
+        }
+      }
       writeManifest(dir, next);
 
       const after = await checkIntegrity(dir);

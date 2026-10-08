@@ -15,6 +15,8 @@
     "prove": "node src/cli/index.js prove",
     "verify": "node src/cli/index.js verify",
     "integrity": "node src/cli/index.js integrity",
+    "key-info": "node src/cli/index.js key-info",
+    "keys:check": "node src/cli/index.js keys-check",
     "test": "node --test --test-force-exit \"tests/**/*.test.js\"",
     "test:positive": "node --test --test-force-exit \"tests/positive/**/*.test.js\"",
     "test:negative": "node --test --test-force-exit \"tests/negative/**/*.test.js\"",

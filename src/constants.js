@@ -23,6 +23,7 @@ export const ARTIFACTS = Object.freeze({
 
 export const MANIFEST_REL = "artifacts/manifest.json";
 export const MANIFEST_SHA_REL = "artifacts/manifest.sha256";
+export const BASELINE_REL = "artifacts/baseline.json";
 
 export const ML_DSA_ALGORITHM = "ML-DSA-87";
 export const ML_DSA_CONTEXT = "aegisproof-mini/manifest-authenticity/v1";

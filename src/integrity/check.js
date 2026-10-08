@@ -77,6 +77,25 @@ export async function checkIntegrity(root = PROJECT_ROOT) {
     checked[name] = actual;
   }
 
+  if (manifest.files !== undefined) {
+    if (!manifest.files || typeof manifest.files !== "object" || Array.isArray(manifest.files)) {
+      fail("manifest の files が不正です");
+    }
+    for (const name of expectedNames) {
+      const record = manifest.files[name];
+      if (!record || typeof record !== "object" || Array.isArray(record)) {
+        fail(`${name} の file 記録がありません`);
+      }
+      if (record.path !== ARTIFACTS[name]) fail(`${name} の path が一致しません`);
+      if (record.sha256 !== checked[name]) fail(`${name} の file 記録ハッシュが一致しません`);
+      if (!Number.isSafeInteger(record.bytes) || record.bytes < 1) {
+        fail(`${name} のサイズ記録が不正です`);
+      }
+      const size = fs.statSync(path.join(root, ARTIFACTS[name])).size;
+      if (record.bytes !== size) fail(`${name} のサイズが manifest と一致しません`);
+    }
+  }
+
   return {
     version: manifest.version,
     artifacts: checked,

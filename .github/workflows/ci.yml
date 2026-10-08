@@ -20,6 +20,9 @@ jobs:
       - name: install
         run: npm ci
 
+      - name: committed key binding
+        run: npm run keys:check
+
       - name: build
         run: npm run build
 

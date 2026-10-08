@@ -1,8 +1,36 @@
 # AegisProof-mini
 
-A minimal, reproducible reference implementation for experimenting with Groth16 proof generation, verification, and artifact integrity.
+[![CI](https://github.com/zenoamo/AegisProof-mini/actions/workflows/ci.yml/badge.svg)](https://github.com/zenoamo/AegisProof-mini/actions/workflows/ci.yml)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933.svg)](package.json)
+[![GitHub](https://img.shields.io/badge/github-zenoamo%2FAegisProof--mini-181717.svg)](https://github.com/zenoamo/AegisProof-mini)
 
-秘密値の Poseidon commitment に対する Groth16 証明を作り、その証明を検証し、回路成果物の SHA-256 が manifest と一致するかを確認する実験用の実装です。本番システムではありません。
+AegisProof-mini is an experimental reference implementation for reproducible Groth16 proof generation, verification, artifact integrity, and an Ethereum Sepolia integration layer.
+
+秘密値の Poseidon commitment に対する Groth16 証明を作り、その証明を検証し、回路成果物の SHA-256 が manifest と一致するかを確認する実験用の参照実装です。Ethereum Sepolia への接続は、その Groth16 検証をテストネット上で実行する拡張です。本番システムではなく、AegisProof v2 の代替でもありません。
+
+| | |
+| --- | --- |
+| 証明すること | 秘密値 `secret` を知っていて、その Poseidon commitment が公開値 `commitment` と一致する |
+| 暗号方式 | Groth16 / BN254。回路内ハッシュは circomlib の `Poseidon(1)`。公開信号は `commitment` の 1 個 |
+| Security model | Groth16 の証明検証、SHA-256 の成果物完全性、任意の ML-DSA-87 真正性は別の層。開発用の単一貢献者セレモニー |
+| Sepolia | chain ID `11155111` 上の experimental integration。Core protocol ではない |
+| AegisProof v2 | このリポジトリは v2 の Frozen Core を含まず、30 フィールドの publicSignals も移植していない |
+| 位置づけ | experimental / development reference。production の保証はない |
+
+文書の入口は [docs/README.md](docs/README.md) です。セキュリティ上の報告は [SECURITY.md](SECURITY.md)、参加方法は [CONTRIBUTING.md](CONTRIBUTING.md) です。
+
+## Quick Start
+
+コミットされている wasm、r1cs、zkey、verification key、manifest を検査する最短経路です。
+
+```bash
+npm ci
+npm test
+npm run integrity
+```
+
+Node.js は `package.json` の `engines` により 20 以上です。任意の Sepolia テストは `npm run sepolia:test` です。デプロイには `.env` の `SEPOLIA_RPC_URL` と `SEPOLIA_PRIVATE_KEY` が必要で、秘密はリポジトリに置きません。手順の詳細は [docs/SEPOLIA.md](docs/SEPOLIA.md) と、この README の「Sepolia Integration」です。
 
 ## 2. Important: AegisProof-mini is NOT AegisProof v2
 
@@ -140,13 +168,15 @@ circuit/main.wasm             witness 計算
 circuit/mini.zkey             開発用 proving key
 
 keys/verification_key.json    Groth16 検証鍵
-artifacts/manifest.json       成果物ハッシュ
+artifacts/manifest.json       成果物ハッシュ、パス、サイズ、binding
 artifacts/manifest.sha256     manifest.json 自身の SHA-256
+artifacts/baseline.json       コミットされたスナップショットのアンカー。build は更新しない
 
 scripts/build.js              コンパイルと開発用セレモニー
 tests/                        正常系、異常系、改ざん、ML-DSA
 fixtures/                     公開スキーマの例。秘密は置いていない
 experimental/sepolia/         Sepolia 上で同じ Groth16 検証を実行する拡張
+docs/                         アーキテクチャ、脅威モデル、再現性、Sepolia
 .github/workflows/ci.yml      CI
 ```
 
@@ -160,7 +190,7 @@ npm test
 npm run integrity
 ```
 
-開発用セレモニーをやり直す場合は `npm run build` です。circom `2.2.3` が PATH に無いとき、ビルドは `tools/circom-2.2.3-sha256.json` の公式バイナリを取得して SHA-256 を確認します。ビルドは新しい zkey と verification key と manifest を書くので、下のスナップショットハッシュは変わります。
+開発用セレモニーをやり直す場合は `npm run build` です。circom `2.2.3` が PATH に無いとき、ビルドは `tools/circom-2.2.3-sha256.json` の公式バイナリを取得して SHA-256 を確認します。ビルドは新しい zkey と verification key と manifest を書くので、下のスナップショットハッシュは変わります。`artifacts/baseline.json` はビルドでは更新しません。
 
 証明と検証のコマンドは次です。秘密の具体値はここに書きません。`commit` は公開 commitment だけを標準出力へ出します。`--secret` はプロセス一覧から見えることがある、と CLI が警告します。入力 JSON はコミットしないでください。
 
@@ -180,7 +210,7 @@ node src/cli/index.js integrity
 }
 ```
 
-`package.json` の `scripts` は `npm test`、`npm run integrity`、`npm run prove`、`npm run verify`、`npm run build` です。分割したテストは `test:positive`、`test:negative`、`test:tamper`、`test:authenticity` です。
+`package.json` の `scripts` は `npm test`、`npm run integrity`、`npm run keys:check`、`npm run key-info`、`npm run prove`、`npm run verify`、`npm run build` です。分割したテストは `test:positive`、`test:negative`、`test:tamper`、`test:authenticity` です。Sepolia 用は `sepolia:export-verifier`、`sepolia:test`、`sepolia:deploy`、`sepolia:verify`、`sepolia:verify:tx` です。
 
 ## 10. Integrity verification
 
@@ -202,10 +232,13 @@ verification_key.json
 1. `manifest.sha256` が `manifest.json` のバイト列と一致しない
 2. manifest の version、Groth16 / BN254、`ceremony.production: false`、成果物名の集合が実装と違う
 3. 各ファイルの SHA-256 が manifest の記録と違う
+4. `files` があるとき、記録された path、SHA-256、バイト数がファイルと違う
 
 `prove` と `verify` と `integrity` と `sign` はこの検査を通りません。不一致のときは処理を止めます。検査を外すフラグはありません。CLI の完全性失敗は終了コード 2 です。
 
-この検査は、手元のファイルと手元の manifest の自己一致です。署名の検査ではありません。
+`npm run keys:check` は、この自己一致に加え、`snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` で r1cs と zkey と verification key の対応を見ます。`artifacts/baseline.json` とも比べます。`npm run key-info` は、その結果の公開フィンガープリントを出します。秘密は出しません。詳細は [docs/KEY_MANAGEMENT.md](docs/KEY_MANAGEMENT.md) です。
+
+この検査は、手元のファイルと手元の manifest の自己一致です。署名の検査ではありません。powers-of-tau に対する `zkey verify` は、ビルド中にそのファイルがあるときだけ実行できます。
 
 ## 11. ML-DSA-87 authenticity
 
@@ -230,10 +263,10 @@ node src/cli/index.js authenticity \
 
 コードと manifest から確認できる前提です。
 
-- セレモニーは開発用の単一貢献者です。manifest の `contributors` は 1、`production` は `false` です。`checkIntegrity` は `production` が `false` でない manifest を拒否します。
-- 本番のマルチパーティセレモニーではありません。manifest の note も、v2 の `production.zkey` ではないと書いています。
+- AegisProof-mini currently uses a single-contributor development ceremony. manifest の `contributors` は 1、`production` は `false` です。`checkIntegrity` は `production` が `false` でない manifest を拒否します。
+- production-grade のマルチパーティセレモニーではありません。toxic waste の破棄を独立に検証する記録はありません。SHA-256 と ML-DSA-87 は、この setup assumption を消しません。trustless setup ではありません。
 - ビルドは貢献用の公開ラベルに OS の CSPRNG を混ぜます。トラップドアを成果物ファイルへ保存する処理はありません。manifest の `toxicWastePersisted` は `false` です。プロセス実行中のメモリまで消えることは、このリポジトリは証明していません。
-- Groth16 の検証は、その verification key の下での検査です。鍵の生成過程を本番水準で信頼できるとはみなせません。
+- Groth16 の検証は、その verification key の下での検査です。鍵の生成過程を本番水準で信頼できるとはみなせません。検証の数学と、セレモニーへの信頼は別です。
 - 依存パッケージの固定は `package-lock.json` です。manifest の対象に `node_modules` は入っていません。
 - ML-DSA の公開鍵は呼び出し側が渡します。このリポジトリに PKI はありません。
 - `commit --secret` は、秘密がプロセス一覧から見えることがあると標準エラーへ警告します。
@@ -241,7 +274,7 @@ node src/cli/index.js authenticity \
 
 ## 13. Known limitations
 
-- 信頼設定は single-contributor の development ceremony です。
+- AegisProof-mini currently uses a single-contributor development ceremony. production-grade MPC ceremony ではなく、toxic waste の破棄は独立に検証できません。SHA-256 と ML-DSA-87 はこの setup assumption を消しません。
 - SHA-256 層は、manifest とファイルをまとめて置き換える攻撃者に対して、外部の真正性を作りません。
 - ML-DSA-87 の検証は任意です。`verify` は署名を見ません。
 - TEE も ClaimsGate も、このリポジトリにはありません。
@@ -274,7 +307,7 @@ AegisProof
 
 このスナップショットの価値は、小さな回路で、証明生成、検証、成果物の完全性検査、改ざん時の失敗を同じツリーの中で再現できることです。
 
-`npm ci` のあと `npm test` と `npm run integrity` は、コミットされている成果物と manifest を検査します。`npm run build` は別の開発用セレモニーを行うため、zkey、verification key、manifest のハッシュは変わります。wasm と r1cs は、同じ circom `2.2.3` とこの `circuit/main.circom` に対するコンパイル結果です。
+`npm ci` のあと `npm test`、`npm run integrity`、`npm run keys:check` は、コミットされている成果物と manifest と baseline を検査します。`npm run build` は別の開発用セレモニーを行うため、zkey、verification key、manifest のハッシュは変わります。baseline はそのとき更新しません。wasm と r1cs は、同じ circom `2.2.3` とこの `circuit/main.circom` に対するコンパイル結果です。zkey が毎回同じバイト列になることは主張しません。
 
 以下は、この作業ツリーのファイルから計算した SHA-256 です。`artifacts/manifest.json` および `artifacts/manifest.sha256` と一致しています。
 
@@ -283,10 +316,10 @@ circuit.wasm              16fdc8b9caed938299b530a6ebc9885dfdf49abe3c2d73d5cbb9ed
 circuit.r1cs              29027acc31b3440d5a8b42df2be4e7db2ef86b543b69823b2bd5c9b896d1516e
 circuit.zkey              5b6a568c2ff858df76d6b09c4dd3eb8779a2ebf121f02d42ffc400ed9e207ac9
 verification_key.json     cad6c28700b34d60159ee1ab40c91878d0436aa677d6a97741dacea5803b0485
-manifest.json             088729dabde9b9d4dc0182bc7099835b5603d13802626d167a7df6ce2f5c1942
+manifest.json             538900e955f6eda641fa0dc801b2559b8edb9b5bab106c8ff62a7f166e3438e5
 ```
 
-CI（`.github/workflows/ci.yml`）は Node.js 22 で `npm ci`、`npm run build`、正常系、異常系、改ざん検知、ML-DSA、`npm run integrity` を実行します。CI はビルドし直すので、上の zkey ハッシュと CI 上のハッシュが一致することは成功条件ではありません。その実行の中で manifest とファイルが一致し、テストが通ることが成功条件です。
+CI（`.github/workflows/ci.yml`）は Node.js 22 で `npm ci`、コミット済みツリーに対する `npm run keys:check`、`npm run build`、正常系、異常系、改ざん検知、ML-DSA、`npm run integrity` を実行します。`keys:check` はビルド前なので、上のハッシュとの一致を見ます。ビルド後の integrity は、そのジョブが作り直した成果物の自己一致です。上の zkey ハッシュと、ビルド後の zkey ハッシュが一致することは成功条件ではありません。
 
 ## 16. License
 

@@ -1,0 +1,43 @@
+{
+  "version": "aegisproof-mini-0.1.0",
+  "note": "Committed snapshot anchor. npm run build does not update this file. It does not show that setup entropy was destroyed.",
+  "manifestSha256": "538900e955f6eda641fa0dc801b2559b8edb9b5bab106c8ff62a7f166e3438e5",
+  "proofSystem": {
+    "protocol": "groth16",
+    "curve": "bn254",
+    "snarkjsCurveName": "bn128"
+  },
+  "circuit": {
+    "constraints": 415,
+    "privateInputs": 1,
+    "publicInputs": 1,
+    "publicSignals": [
+      "commitment"
+    ]
+  },
+  "nPublic": 1,
+  "ceremony": {
+    "production": false,
+    "contributors": 1
+  },
+  "artifacts": {
+    "circuit.wasm": "16fdc8b9caed938299b530a6ebc9885dfdf49abe3c2d73d5cbb9ed1531fb79ea",
+    "circuit.r1cs": "29027acc31b3440d5a8b42df2be4e7db2ef86b543b69823b2bd5c9b896d1516e",
+    "circuit.zkey": "5b6a568c2ff858df76d6b09c4dd3eb8779a2ebf121f02d42ffc400ed9e207ac9",
+    "verification_key.json": "cad6c28700b34d60159ee1ab40c91878d0436aa677d6a97741dacea5803b0485"
+  },
+  "files": {
+    "circuit.wasm": {
+      "bytes": 1633973
+    },
+    "circuit.r1cs": {
+      "bytes": 53212
+    },
+    "circuit.zkey": {
+      "bytes": 186592
+    },
+    "verification_key.json": {
+      "bytes": 3158
+    }
+  }
+}

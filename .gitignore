@@ -14,3 +14,6 @@ keys/mldsa_public.json
 coverage/
 .env
 .env.*
+!.env.example
+experimental/sepolia/cache/
+experimental/sepolia/hh-artifacts/

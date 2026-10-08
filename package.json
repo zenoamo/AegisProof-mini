@@ -19,7 +19,12 @@
     "test:positive": "node --test --test-force-exit \"tests/positive/**/*.test.js\"",
     "test:negative": "node --test --test-force-exit \"tests/negative/**/*.test.js\"",
     "test:tamper": "node --test --test-force-exit \"tests/tamper/**/*.test.js\"",
-    "test:authenticity": "node --test --test-force-exit \"tests/authenticity/**/*.test.js\""
+    "test:authenticity": "node --test --test-force-exit \"tests/authenticity/**/*.test.js\"",
+    "sepolia:export-verifier": "node experimental/sepolia/scripts/export-verifier.js",
+    "sepolia:test": "node experimental/sepolia/scripts/run-hardhat-test.cjs",
+    "sepolia:deploy": "hardhat run experimental/sepolia/scripts/deploy.cjs --network sepolia --config experimental/sepolia/hardhat.config.cjs",
+    "sepolia:verify": "node experimental/sepolia/scripts/verify-call.cjs",
+    "sepolia:verify:tx": "node experimental/sepolia/scripts/verify-tx.cjs"
   },
   "engines": {
     "node": ">=20"
@@ -30,5 +35,10 @@
     "circomlibjs": "0.1.7",
     "snarkjs": "0.7.6"
   },
-  "license": "GPL-3.0-or-later"
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.1.2",
+    "ethers": "^6.15.0",
+    "hardhat": "^2.29.1"
+  }
 }

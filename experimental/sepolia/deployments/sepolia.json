@@ -1,0 +1,27 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "contractAddress": "0x6a8Ae56aDd6ba2ea0CDCD9Fe64203C610621b790",
+  "deployer": "0x23E7347D826Fe25dd709C52FB0036E793D54B8C0",
+  "deployTransactionHash": "0x48d7fc208986bcec01b28ca0806613969600584196c74b773440439d80f1bd4c",
+  "blockNumber": 11866912,
+  "gasUsed": "3513523",
+  "status": 1,
+  "publicSignalCount": 1,
+  "explorer": {
+    "contract": "https://sepolia.etherscan.io/address/0x6a8Ae56aDd6ba2ea0CDCD9Fe64203C610621b790",
+    "deployTransaction": "https://sepolia.etherscan.io/tx/0x48d7fc208986bcec01b28ca0806613969600584196c74b773440439d80f1bd4c"
+  },
+  "verification": {
+    "transactionHash": "0xee001b0be2d475973fc5292e3b2dab5df82d361eefc9875ea906a02eaae4749f",
+    "from": "0x23E7347D826Fe25dd709C52FB0036E793D54B8C0",
+    "to": "0x6a8Ae56aDd6ba2ea0CDCD9Fe64203C610621b790",
+    "chainId": 11155111,
+    "blockNumber": 11866927,
+    "status": 1,
+    "gasUsed": "433214",
+    "lastValid": true,
+    "lastCommitment": "6572332521346552969132897450536910588528541939757210093019227709593248338264",
+    "explorer": "https://sepolia.etherscan.io/tx/0xee001b0be2d475973fc5292e3b2dab5df82d361eefc9875ea906a02eaae4749f"
+  }
+}

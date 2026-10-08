@@ -32,14 +32,23 @@ function fail(file, rule, detail) {
 }
 
 function readText(file) {
-  const abs = path.join(root, file);
-  const stat = fs.statSync(abs);
-  if (stat.size > 1_000_000) return null;
   const ext = path.posix.extname(file).toLowerCase();
   if (ext && !TEXT_EXT.has(ext) && path.posix.basename(file) !== ".gitignore") return null;
-  const bytes = fs.readFileSync(abs);
-  if (bytes.includes(0)) return null;
-  return bytes.toString("utf8");
+  let fd;
+  try {
+    fd = fs.openSync(path.join(root, file), "r");
+    const info = fs.fstatSync(fd);
+    if (!info.isFile() || info.size > 1_000_000) return null;
+    const bytes = Buffer.alloc(info.size);
+    const read = fs.readSync(fd, bytes, 0, info.size, 0);
+    if (read !== info.size || bytes.includes(0)) return null;
+    return bytes.toString("utf8");
+  } catch (err) {
+    if (err && (err.code === "ENOENT" || err.code === "EISDIR")) return null;
+    throw err;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
 }
 
 function forbiddenName(file) {
@@ -157,8 +166,8 @@ function reportCsPrng(files) {
   console.log(`csprng randomBytes calls in crypto paths: ${randomBytes}`);
   console.log(`csprng webcrypto calls in crypto paths: ${webcrypto}`);
   console.log(`ml_dsa87.keygen calls in crypto paths: ${keygen}`);
+  console.log("randomBytes names exclusive temporary files.");
   console.log("ML-DSA-87 key generation uses ml_dsa87.keygen(). Groth16 randomness stays inside snarkjs.");
-  console.log("crypto paths do not implement a separate CSPRNG.");
   if (testRandom === 0) console.log("tests/ does not call Math.random.");
   else console.log(`tests/ files calling Math.random: ${testRandom}. Those paths are outside the crypto implementation.`);
 }
@@ -245,16 +254,32 @@ function severityScore(run, result) {
   return score === undefined ? Number.NaN : Number(score);
 }
 
+function readSarif(filePath) {
+  let fd;
+  try {
+    fd = fs.openSync(filePath, "r");
+    return fs.readFileSync(fd, "utf8");
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
 function sarif(dir) {
   const abs = path.resolve(root, dir);
-  if (!fs.existsSync(abs)) {
-    console.log("SARIF directory is absent. No high or critical findings to report.");
-    return;
+  let names;
+  try {
+    names = fs.readdirSync(abs);
+  } catch (err) {
+    if (err && err.code === "ENOENT") {
+      console.log("SARIF directory is absent. No high or critical findings to report.");
+      return;
+    }
+    throw err;
   }
-  const files = fs.readdirSync(abs).filter((name) => name.endsWith(".sarif"));
+  const files = names.filter((name) => name.endsWith(".sarif"));
   let blocking = 0;
   for (const name of files) {
-    const doc = JSON.parse(fs.readFileSync(path.join(abs, name), "utf8"));
+    const doc = JSON.parse(readSarif(path.join(abs, name)));
     for (const run of doc.runs || []) {
       for (const result of run.results || []) {
         const score = severityScore(run, result);

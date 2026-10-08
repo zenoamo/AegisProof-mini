@@ -99,7 +99,7 @@ ML-DSA-87 は任意の artifact authenticity layer です。署名対象は、�
 
 `elliptic@6.6.1` は `circomlibjs` → ethers 5 から入ります。公開されている最新版が 6.6.1 であり、置き換える修正版はありません。`snarkjs`、`circomlib`、`circomlibjs`、Hardhat 3 への major 更新では解消していません。mocha 11 配下の `diff@7` も、Hardhat 2.29 の `mocha@^11` の範囲では修正版 `8.0.3` に届きません。どちらも Low で、crypto-security workflow は記録し、その Low だけでは失敗にしません。Critical または High が出たときは失敗します。workflow は `npm audit fix` を実行しません。
 
-circom は pragma `2.2.2`、このスナップショットのコンパイラ記録は `2.2.3` です。PATH にその版が無いとき、ビルドは `tools/circom-2.2.3-sha256.json` の公式バイナリを取得して SHA-256 を確認します。
+circom は pragma `2.2.2`、このスナップショットのコンパイラ記録は `2.2.3` です。PATH にその版が無いとき、ビルドは公式リリースのバイナリをメモリへ取得します。取得 URL はスクリプト内の `v2.2.3` 固定文字列で、pin ファイルの `source` や `file` は URL に使いません。pin と一致しない配布元は拒否します。SHA-256 は `tools/circom-2.2.3-sha256.json` の既存の値と比べ、一致したバイト列だけを排他作成した一時ファイルへ書き、そのあと `--version` を実行します。不一致のバイト列は書き込まず、実行しません。キャッシュへ保存するのも、その検証後のバイト列です。
 
 ## Sepolia
 

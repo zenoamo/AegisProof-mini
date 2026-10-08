@@ -8,7 +8,7 @@ AegisProof-mini の文書の入口です。実装は experimental / development 
 | [Threat model](THREAT_MODEL.md) | 検査が止めるものと、残るリスク |
 | [Reproducibility](REPRODUCIBILITY.md) | バージョン、制約数、成果物ハッシュ、ビルドとセレモニーの違い |
 | [Key management](KEY_MANAGEMENT.md) | 成果物の対応、baseline、単一貢献者セレモニーの残り |
-| [Security](../SECURITY.md) | 位置づけ、報告方法、暗号上の前提、保証しないもの |
+| [Security](../SECURITY.md) | 位置づけ、報告方法、暗号上の前提、CodeQL と crypto-security の役割、保証しないもの |
 | [Sepolia](SEPOLIA.md) | テストネット上の Groth16 検証。experimental integration |
 | [Contributing](../CONTRIBUTING.md) | 開発手順、層の境界、pull request、秘密情報 |
 

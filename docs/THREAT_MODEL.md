@@ -22,6 +22,14 @@
 | private key exposure | `SEPOLIA_PRIVATE_KEY`、ML-DSA 秘密鍵、または `commit --secret` の回路秘密が漏れる | 秘密鍵は環境変数からのみ読む。`.env`、`*.mldsa.sk`、`input.json`、`proof.json` は `.gitignore` の対象。証明封筒に `secret` を書かない。ログへ秘密鍵を出さない実装 | `commit --secret` はプロセス一覧から見えることがある。漏れた鍵の無効化や、開発マシンの保護は、このリポジトリの範囲外。Sepolia の鍵が漏れれば、そのアドレスのテストネット資金は移せる |
 | dev ceremony trapdoor assumptions | 単一貢献者がフェーズ1とフェーズ2のトラップドアを保持したまま、任意の証明を作る | 成果物ファイルへトラップドアを書かない。`toxicWastePersisted` は `false`。manifest は `production: false` を要求し、本番鍵として読み込ませない | 単一貢献者セレモニーでは、貢献者がトラップドアを捨てたことを第三者が検証できない。したがって、この verification key は本番の健全性の根拠にならない。Sepolia に同じ鍵を載せても、この残リスクは残る |
 
+## 継続検査
+
+`codeql.yml` はアプリケーションと workflow の CodeQL `security-extended` です。High と Critical で失敗します。この結果は、上の表の Groth16、成果物完全性、ML-DSA-87、セレモニーの残リスクを閉じません。
+
+`crypto-security.yml` は、既存の `keys:check`、`integrity`、正常系、異常系、改ざん、ML-DSA、Sepolia のローカルテストを、build しないコミット済みツリーで実行します。秘密の実値と、暗号実装パス上の弱い API も見ます。依存関係の `npm audit` は記録し、Critical と High のときだけ失敗します。修正版のない `elliptic` の Low と、mocha 11 配下の `diff` の Low は残ります。Sepolia へのデプロイと、状態を変えるトランザクションは実行しません。
+
+これらの workflow は、上の表にある検査が戻っていないかを見ます。表の Residual Risk 列は、workflow を追加したあとも残ります。
+
 ## 層ごとの残り
 
 SHA-256 が止めるのは、manifest を更新せずにファイルだけを変える変更です。ML-DSA-87 が追加で止めるのは、あらかじめ信頼した公開鍵の署名が無い成果物ダイジェストです。Groth16 が止めるのは、その verification key と公開 `commitment` に対して受理されない証明です。Sepolia はその Groth16 検査の実行場所であり、前の三つの残リスクを消しません。

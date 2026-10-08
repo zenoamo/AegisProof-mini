@@ -1,6 +1,8 @@
 # AegisProof-mini
 
 [![CI](https://github.com/zenoamo/AegisProof-mini/actions/workflows/ci.yml/badge.svg)](https://github.com/zenoamo/AegisProof-mini/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/zenoamo/AegisProof-mini/actions/workflows/codeql.yml/badge.svg)](https://github.com/zenoamo/AegisProof-mini/actions/workflows/codeql.yml)
+[![Crypto security](https://github.com/zenoamo/AegisProof-mini/actions/workflows/crypto-security.yml/badge.svg)](https://github.com/zenoamo/AegisProof-mini/actions/workflows/crypto-security.yml)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-339933.svg)](package.json)
 [![GitHub](https://img.shields.io/badge/github-zenoamo%2FAegisProof--mini-181717.svg)](https://github.com/zenoamo/AegisProof-mini)
@@ -173,11 +175,14 @@ artifacts/manifest.sha256     manifest.json 自身の SHA-256
 artifacts/baseline.json       コミットされたスナップショットのアンカー。build は更新しない
 
 scripts/build.js              コンパイルと開発用セレモニー
+scripts/security-observability.js  秘密の実値、弱い暗号 API、audit の分類。鍵検査は既存 CLI
 tests/                        正常系、異常系、改ざん、ML-DSA
 fixtures/                     公開スキーマの例。秘密は置いていない
 experimental/sepolia/         Sepolia 上で同じ Groth16 検証を実行する拡張
 docs/                         アーキテクチャ、脅威モデル、再現性、Sepolia
-.github/workflows/ci.yml      CI
+.github/workflows/ci.yml      ビルドを含む CI
+.github/workflows/codeql.yml  CodeQL。暗号健全性の検査ではない
+.github/workflows/crypto-security.yml  コミット済み成果物の鍵、改ざん、ML-DSA、Sepolia ローカルテスト
 ```
 
 ## 9. Quick Start
@@ -321,6 +326,8 @@ manifest.json             538900e955f6eda641fa0dc801b2559b8edb9b5bab106c8ff62a7f
 
 CI（`.github/workflows/ci.yml`）は Node.js 22 で `npm ci`、コミット済みツリーに対する `npm run keys:check`、`npm run build`、正常系、異常系、改ざん検知、ML-DSA、`npm run integrity` を実行します。`keys:check` はビルド前なので、上のハッシュとの一致を見ます。ビルド後の integrity は、そのジョブが作り直した成果物の自己一致です。上の zkey ハッシュと、ビルド後の zkey ハッシュが一致することは成功条件ではありません。
 
+`.github/workflows/crypto-security.yml` は build せず、上のコミット済みハッシュに対して `keys:check`、integrity、正常系、異常系、改ざん、ML-DSA、`npm run sepolia:test` を実行します。Sepolia へのデプロイはしません。`.github/workflows/codeql.yml` は JavaScript / TypeScript と GitHub Actions の一般的な検査です。CodeQL の成功は、Groth16、成果物完全性、ML-DSA-87 の成功を意味しません。層の対応は [SECURITY.md](SECURITY.md) にあります。
+
 ## 16. License
 
 `package.json` の `license` は `GPL-3.0-or-later` です。リポジトリの `LICENSE` は GNU General Public License version 3 のテキストです。
@@ -373,7 +380,7 @@ true / false
 ## Requirements
 
 - Node.js 20 以上。この作業では Node.js 24 で実行しました。
-- `npm ci` または `npm install`。Sepolia 用の devDependency は `hardhat` 2.29、`@nomicfoundation/hardhat-ethers` 3.1、`ethers` 6.15 です。
+- `npm ci` または `npm install`。Sepolia 用の devDependency は `hardhat` 2.29、`@nomicfoundation/hardhat-ethers` 3.1、`ethers` 6.17 です。
 - 既存の `circuit/mini.zkey` と `keys/verification_key.json`。セレモニーをやり直す必要はありません。
 - Sepolia ETH を持つ秘密鍵。秘密鍵は `SEPOLIA_PRIVATE_KEY` からのみ読みます。
 

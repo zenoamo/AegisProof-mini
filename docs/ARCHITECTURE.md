@@ -54,7 +54,9 @@ artifacts/manifest.sha256        manifest.json 自身の SHA-256
 
 `src/integrity/check.js` は、`manifest.sha256`、manifest の version / protocol / curve / `ceremony.production === false` / 成果物名、各ファイルのハッシュ、記録があるときは path とサイズの順に見ます。不一致では `prove`、`verify`、`integrity`、`sign` を止めます。検査を外すフラグはありません。
 
-`src/integrity/keys.js` の `checkArtifactBinding` は、そのあと `snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` で、その時点の r1cs、zkey、verification key、manifest の対応を見ます。`checkKeyBinding` はそれに加え、`artifacts/baseline.json` と比べます。baseline はコミットされたスナップショットのアンカーで、ビルドは更新しません。CI の `test:positive` は build のあとなので、baseline との一致ではなく `checkArtifactBinding` を使います。powers-of-tau に対する `zkey verify` は、ビルド中にそのファイルがあるときだけです。詳細は [KEY_MANAGEMENT.md](KEY_MANAGEMENT.md) です。
+`src/integrity/keys.js` の `checkArtifactBinding` は、そのあと `snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` で、その時点の r1cs、zkey、verification key、manifest の対応を見ます。`checkKeyBinding` はそれに加え、`artifacts/baseline.json` と比べます。baseline はコミットされたスナップショットのアンカーで、ビルドは更新しません。`ci.yml` の `test:positive` は build のあとなので、baseline との一致ではなく `checkArtifactBinding` を使います。`crypto-security.yml` は build せず、同じ `keys:check` をコミット済みツリーに対して実行します。powers-of-tau に対する `zkey verify` は、ビルド中にそのファイルがあるときだけです。詳細は [KEY_MANAGEMENT.md](KEY_MANAGEMENT.md) です。
+
+CodeQL（`.github/workflows/codeql.yml`）は JavaScript / TypeScript と GitHub Actions の一般的な検査です。Groth16 の受理、成果物の SHA-256、ML-DSA-87 の成否は見ません。その三層は既存の CLI とテストが担当し、crypto-security workflow がコミット済みツリーで繰り返します。役割の対応は [SECURITY.md](../SECURITY.md) にあります。
 
 Poseidon commitment は、回路の中の `secret` のコミットメントです。wasm や zkey のハッシュではありません。
 

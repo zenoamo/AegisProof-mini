@@ -1,0 +1,57 @@
+name: Crypto security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  crypto-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Secret handling and crypto API checks
+        run: node scripts/security-observability.js static
+
+      - name: Committed key binding
+        run: npm run keys:check
+
+      - name: Baseline fingerprint
+        run: node scripts/security-observability.js fingerprint
+
+      - name: Artifact integrity
+        run: npm run integrity
+
+      - name: Positive tests
+        run: npm run test:positive
+
+      - name: Negative tests
+        run: npm run test:negative
+
+      - name: Tamper tests
+        run: npm run test:tamper
+
+      - name: ML-DSA authenticity
+        run: npm run test:authenticity
+
+      - name: Sepolia local tests
+        run: npm run sepolia:test
+
+      - name: Dependency audit
+        run: node scripts/security-observability.js audit

@@ -97,7 +97,7 @@ ML-DSA-87 は任意の artifact authenticity layer です。署名対象は、�
 
 `ethers` 6 は `^6.17.0` です。この版が直接依存する `ws` は `8.21.0` で、8.20.1 未満の修正範囲に入ります。
 
-`elliptic@6.6.1` は `circomlibjs` → ethers 5 から入ります。公開されている最新版が 6.6.1 であり、置き換える修正版はありません。`snarkjs`、`circomlib`、`circomlibjs`、Hardhat 3 への major 更新では解消していません。
+`elliptic@6.6.1` は `circomlibjs` → ethers 5 から入ります。公開されている最新版が 6.6.1 であり、置き換える修正版はありません。`snarkjs`、`circomlib`、`circomlibjs`、Hardhat 3 への major 更新では解消していません。mocha 11 配下の `diff@7` も、Hardhat 2.29 の `mocha@^11` の範囲では修正版 `8.0.3` に届きません。どちらも Low で、crypto-security workflow は記録し、その Low だけでは失敗にしません。Critical または High が出たときは失敗します。workflow は `npm audit fix` を実行しません。
 
 circom は pragma `2.2.2`、このスナップショットのコンパイラ記録は `2.2.3` です。PATH にその版が無いとき、ビルドは `tools/circom-2.2.3-sha256.json` の公式バイナリを取得して SHA-256 を確認します。
 
@@ -106,6 +106,44 @@ circom は pragma `2.2.2`、このスナップショットのコンパイラ記�
 `experimental/sepolia/` は Core の回路、prover、verifier、integrity、authenticity を置き換えません。オンチェーンの `verifyProof` が true であることは、この verification key の下で Groth16 証明が受理されたことであり、成果物の SHA-256 完全性や ML-DSA-87 真正性がチェーン上で確認されたことにはなりません。
 
 Sepolia はテストネットです。秘密鍵は `SEPOLIA_PRIVATE_KEY` からのみ読み、ソースやドキュメントへ書きません。
+
+## 継続検査
+
+検査は層ごとに分かれます。CodeQL が成功したことは、Groth16 の健全性、成果物の完全性、ML-DSA-87 の真正性、セレモニーの信頼を意味しません。
+
+```text
+CodeQL
+  ↓
+general application / workflow security
+
+Dependency audit
+  ↓
+known vulnerable dependencies
+
+Crypto security checks
+  ↓
+cryptographic API misuse / secret handling
+
+ZKP integrity checks
+  ↓
+R1CS / zkey / verification-key binding
+
+ML-DSA
+  ↓
+artifact authenticity
+
+Groth16 verification
+  ↓
+proof validity
+```
+
+`.github/workflows/codeql.yml` は JavaScript / TypeScript と GitHub Actions workflow を、CodeQL の `security-extended` で見ます。SARIF の `security-severity` が 7.0 以上（High または Critical）の結果で失敗します。回路のコンパイル、zkey、verification key の生成はしません。
+
+`.github/workflows/crypto-security.yml` は、コミット済みツリーに対して既存の `npm run keys:check`、`npm run integrity`、`test:positive`、`test:negative`、`test:tamper`、`test:authenticity`、`npm run sepolia:test` を実行します。`keys:check` が protocol、曲線、`nPublic`、制約数 415、r1cs から zkey、zkey から verification key、manifest、baseline の対応を見ます。同じ判定を workflow 用に複製していません。この workflow は `npm run build` を実行せず、Sepolia へのデプロイや状態を変えるトランザクションも実行しません。`SEPOLIA_PRIVATE_KEY` は使いません。
+
+秘密の実値、PEM 秘密鍵、弱い暗号 API（MD5、SHA-1、DES、3DES、RC4、ECB、暗号パス上の `Math.random()`）は `scripts/security-observability.js` が見ます。識別子、空の `.env.example`、公開アドレス、deployment の transaction hash、プレースホルダ、テスト用の明示的な非秘密値は失敗条件にしていません。GitHub の secret scanning の代わりにはしません。
+
+`.github/workflows/ci.yml` は、`keys:check` のあとに `npm run build` を実行し、そのジョブが作り直した開発用セレモニーの内部整合を見ます。コミット済み鍵との一致は、build 前の `keys:check` と crypto-security workflow が担当します。
 
 ## このプロジェクトが保証しないもの
 
@@ -117,3 +155,4 @@ Sepolia はテストネットです。秘密鍵は `SEPOLIA_PRIVATE_KEY` から�
 - 耐量子の証明方式への移行。ML-DSA-87 は成果物ダイジェストへの任意の署名です
 - mainnet での検証
 - 秘密がプロセス一覧や開発マシンのメモリから見えないこと。`commit --secret` は、秘密がプロセス一覧から見えることがあると警告します
+- CodeQL の成功が、Groth16、SHA-256 完全性、ML-DSA-87、または開発用セレモニーの信頼を意味すること

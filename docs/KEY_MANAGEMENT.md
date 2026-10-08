@@ -49,7 +49,7 @@ wasm は witness 計算に使い、zkey の中身からは再生成しません�
 | Verification key binding | `npm run keys:check`。`snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` を使い、r1cs の本数と、zkey から書き出した verification key がファイルと一致するかを見る |
 | Committed baseline | `keys:check` が `artifacts/baseline.json` と現在のハッシュを比べる。ビルドはこれを更新しない |
 | Git history | 鍵を差し替えた commit の差分。baseline を黙って進めることは、この差分に出る |
-| CI | `.github/workflows/ci.yml` は、`npm run build` の前に `npm run keys:check` を実行する。その後のテストは、そのジョブが作り直した開発用セレモニーに対する回帰 |
+| CI | `.github/workflows/ci.yml` は、`npm run build` の前に `npm run keys:check` を実行する。その後のテストは、そのジョブが作り直した開発用セレモニーに対する回帰。`.github/workflows/crypto-security.yml` は build せず、コミット済みツリーの `keys:check`、integrity、改ざん、ML-DSA、Sepolia のローカルテストを実行する |
 | Optional ML-DSA-87 | 呼び出し側が渡した公開鍵による成果物ダイジェストの署名。リポジトリは公開鍵を同梱しない |
 
 GitHub の branch protection、required checks、force-push 禁止、署名付き commit、2FA は、このリポジトリのファイルからは設定済みかどうかを判断できません。下の「推奨」は、設定したという意味ではありません。
@@ -75,7 +75,7 @@ npm run key-info
 
 表示するのは protocol、curve、nPublic、制約数、各成果物の SHA-256、manifest の SHA-256 です。秘密、witness、トラップドアは出しません。この出力は、セットアップのエントロピーが破棄されたことを示しません。
 
-`npm run keys:check` は同じ内容に加え、baseline との一致を終了コードで返します。失敗時の CLI 終了コードは 2 です。`key-info` は baseline を要求しません。CI は build の前に `keys:check` を実行します。そのあとの `test:positive` は、作り直したセレモニーについて zkey と verification key と manifest の対応を見ます。build が baseline を更新しないため、そのテストは baseline の `manifest.sha256` とは比べません。
+`npm run keys:check` は同じ内容に加え、baseline との一致を終了コードで返します。失敗時の CLI 終了コードは 2 です。`key-info` は baseline を要求しません。`ci.yml` は build の前に `keys:check` を実行します。そのあとの `test:positive` は、作り直したセレモニーについて zkey と verification key と manifest の対応を見ます。build が baseline を更新しないため、そのテストは baseline の `manifest.sha256` とは比べません。`crypto-security.yml` は build しないので、`keys:check` と `test:positive` の両方がコミット済み成果物を見ます。baseline の `manifestSha256` の表示は fingerprint 用で、一致判定は `keys:check` です。
 
 ## Key replacement
 
@@ -129,7 +129,7 @@ SHA-256 integrity  ≠  ML-DSA authenticity  ≠  Groth16 proof validity
 次は推奨です。この作業ツリーは、設定済みであるとは記録していません。
 
 - `main` を protected branch にする
-- `npm run keys:check` を含む CI を required check にする
+- `ci.yml` の `keys:check`、`crypto-security.yml`、`codeql.yml` を required check にする
 - force push を禁止する
 - branch の削除を禁止する
 - signed commits を検討する

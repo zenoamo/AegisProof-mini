@@ -236,7 +236,7 @@ verification_key.json
 
 `prove` と `verify` と `integrity` と `sign` はこの検査を通りません。不一致のときは処理を止めます。検査を外すフラグはありません。CLI の完全性失敗は終了コード 2 です。
 
-`npm run keys:check` は、この自己一致に加え、`snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` で r1cs と zkey と verification key の対応を見ます。`artifacts/baseline.json` とも比べます。`npm run key-info` は、その結果の公開フィンガープリントを出します。秘密は出しません。詳細は [docs/KEY_MANAGEMENT.md](docs/KEY_MANAGEMENT.md) です。
+`npm run keys:check` は、この自己一致に加え、`snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` で r1cs と zkey と verification key の対応を見ます。さらに `artifacts/baseline.json` とも比べます。`npm run key-info` は、baseline との比較を除いた公開フィンガープリントを出します。秘密は出しません。詳細は [docs/KEY_MANAGEMENT.md](docs/KEY_MANAGEMENT.md) です。
 
 この検査は、手元のファイルと手元の manifest の自己一致です。署名の検査ではありません。powers-of-tau に対する `zkey verify` は、ビルド中にそのファイルがあるときだけ実行できます。
 
@@ -307,7 +307,7 @@ AegisProof
 
 このスナップショットの価値は、小さな回路で、証明生成、検証、成果物の完全性検査、改ざん時の失敗を同じツリーの中で再現できることです。
 
-`npm ci` のあと `npm test`、`npm run integrity`、`npm run keys:check` は、コミットされている成果物と manifest と baseline を検査します。`npm run build` は別の開発用セレモニーを行うため、zkey、verification key、manifest のハッシュは変わります。baseline はそのとき更新しません。wasm と r1cs は、同じ circom `2.2.3` とこの `circuit/main.circom` に対するコンパイル結果です。zkey が毎回同じバイト列になることは主張しません。
+`npm ci` のあと `npm run keys:check` は、コミットされている成果物と manifest と baseline を検査します。`npm test` と `npm run integrity` は、その時点の成果物と manifest の対応を検査します。CI は build の前に `keys:check` を実行し、build のあとの `test:positive` は作り直したセレモニーの内部整合を見ます。`npm run build` は別の開発用セレモニーを行うため、zkey、verification key、manifest のハッシュは変わります。baseline はそのとき更新しません。wasm と r1cs は、同じ circom `2.2.3` とこの `circuit/main.circom` に対するコンパイル結果です。zkey が毎回同じバイト列になることは主張しません。
 
 以下は、この作業ツリーのファイルから計算した SHA-256 です。`artifacts/manifest.json` および `artifacts/manifest.sha256` と一致しています。
 

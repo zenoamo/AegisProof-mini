@@ -75,7 +75,7 @@ npm run key-info
 
 表示するのは protocol、curve、nPublic、制約数、各成果物の SHA-256、manifest の SHA-256 です。秘密、witness、トラップドアは出しません。この出力は、セットアップのエントロピーが破棄されたことを示しません。
 
-`npm run keys:check` は同じ内容に加え、baseline との一致を終了コードで返します。失敗時の CLI 終了コードは 2 です。
+`npm run keys:check` は同じ内容に加え、baseline との一致を終了コードで返します。失敗時の CLI 終了コードは 2 です。`key-info` は baseline を要求しません。CI は build の前に `keys:check` を実行します。そのあとの `test:positive` は、作り直したセレモニーについて zkey と verification key と manifest の対応を見ます。build が baseline を更新しないため、そのテストは baseline の `manifest.sha256` とは比べません。
 
 ## Key replacement
 

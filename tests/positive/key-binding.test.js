@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkKeyBinding } from "../../src/integrity/keys.js";
+import { checkArtifactBinding } from "../../src/integrity/keys.js";
 
-test("committed zkey exports the trusted verification key", { timeout: 180000 }, async () => {
-  const report = await checkKeyBinding();
+test("current zkey exports the verification key in the manifest", { timeout: 180000 }, async () => {
+  const report = await checkArtifactBinding();
   assert.equal(report.protocol, "groth16");
   assert.equal(report.curve, "bn254");
   assert.equal(report.snarkjsCurve, "bn128");

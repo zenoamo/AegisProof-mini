@@ -81,7 +81,7 @@ manifest.json             538900e955f6eda641fa0dc801b2559b8edb9b5bab106c8ff62a7f
 | `npm run build` | コンパイルと新しい開発用セレモニー。baseline は更新しない |
 | `npm run sepolia:test` | ローカル Solidity verifier。deployment があるときは Sepolia 上のコントラクトとの bool の一致も見る |
 
-CI は Ubuntu の Node.js 22 で、`npm ci`、コミット済みツリーに対する `npm run keys:check`、そのあとの `npm run build`、正常系、異常系、改ざん、ML-DSA、`npm run integrity` を実行します。build のあとの integrity は、そのジョブが作り直した成果物の自己一致です。checkout 直後の `keys:check` が、コミットされた baseline との回帰です。
+CI は Ubuntu の Node.js 22 で、`npm ci`、コミット済みツリーに対する `npm run keys:check`、そのあとの `npm run build`、正常系、異常系、改ざん、ML-DSA、`npm run integrity` を実行します。build のあとの integrity と `test:positive` は、そのジョブが作り直した成果物の自己一致です。`test:positive` の鍵テストは zkey から書き出した verification key と、その時点の manifest を比べ、baseline の `manifest.sha256` とは比べません。checkout 直後の `keys:check` が、コミットされた baseline との回帰です。
 
 ## Dev ceremony
 

@@ -54,7 +54,7 @@ artifacts/manifest.sha256        manifest.json 自身の SHA-256
 
 `src/integrity/check.js` は、`manifest.sha256`、manifest の version / protocol / curve / `ceremony.production === false` / 成果物名、各ファイルのハッシュ、記録があるときは path とサイズの順に見ます。不一致では `prove`、`verify`、`integrity`、`sign` を止めます。検査を外すフラグはありません。
 
-`src/integrity/keys.js` の `checkKeyBinding` は、そのあと `snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` で r1cs、zkey、verification key の対応を見ます。`artifacts/baseline.json` はコミットされたスナップショットのアンカーで、ビルドは更新しません。powers-of-tau に対する `zkey verify` は、ビルド中にそのファイルがあるときだけです。詳細は [KEY_MANAGEMENT.md](KEY_MANAGEMENT.md) です。
+`src/integrity/keys.js` の `checkArtifactBinding` は、そのあと `snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` で、その時点の r1cs、zkey、verification key、manifest の対応を見ます。`checkKeyBinding` はそれに加え、`artifacts/baseline.json` と比べます。baseline はコミットされたスナップショットのアンカーで、ビルドは更新しません。CI の `test:positive` は build のあとなので、baseline との一致ではなく `checkArtifactBinding` を使います。powers-of-tau に対する `zkey verify` は、ビルド中にそのファイルがあるときだけです。詳細は [KEY_MANAGEMENT.md](KEY_MANAGEMENT.md) です。
 
 Poseidon commitment は、回路の中の `secret` のコミットメントです。wasm や zkey のハッシュではありません。
 

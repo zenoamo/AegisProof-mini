@@ -18,7 +18,7 @@ import { AuthenticityError, InputError, IntegrityError, ProofError } from "../er
 import { poseidonCommitment } from "../commitment.js";
 import { parseFieldElement } from "../field.js";
 import { checkIntegrity } from "../integrity/check.js";
-import { checkKeyBinding } from "../integrity/keys.js";
+import { checkArtifactBinding, checkKeyBinding } from "../integrity/keys.js";
 import { proveToFile } from "../prover/prove.js";
 import { verify } from "../verifier/verify.js";
 import {
@@ -169,7 +169,7 @@ function printKeyReport(report) {
 async function commandKeyInfo(args) {
   if (args.length) fail(helpText(), 4);
   try {
-    printKeyReport(await checkKeyBinding());
+    printKeyReport(await checkArtifactBinding());
   } catch (err) {
     if (err instanceof IntegrityError) fail(err.message, 2);
     fail("鍵情報の確認に失敗しました", 2);

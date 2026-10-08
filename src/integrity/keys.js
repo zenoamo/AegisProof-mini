@@ -114,7 +114,7 @@ function assertBaseline(root, report) {
   }
 }
 
-export async function checkKeyBinding(root = PROJECT_ROOT) {
+export async function checkArtifactBinding(root = PROJECT_ROOT) {
   const integrity = await checkIntegrity(root);
   const manifest = integrity.manifest;
   assertBinding(manifest);
@@ -130,7 +130,7 @@ export async function checkKeyBinding(root = PROJECT_ROOT) {
     fail("zkey から書き出した verification key が keys/verification_key.json と一致しません");
   }
 
-  const report = {
+  return {
     protocol: stored.protocol,
     curve: manifest.proofSystem.curve,
     snarkjsCurve: stored.curve,
@@ -146,6 +146,10 @@ export async function checkKeyBinding(root = PROJECT_ROOT) {
       contributors: manifest.ceremony.contributors,
     },
   };
+}
+
+export async function checkKeyBinding(root = PROJECT_ROOT) {
+  const report = await checkArtifactBinding(root);
   assertBaseline(root, report);
   return report;
 }

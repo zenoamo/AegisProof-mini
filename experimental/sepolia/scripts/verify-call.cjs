@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { ethers } = require("ethers");
-const { loadProjectEnv, redact } = require("./load-env.cjs");
+const { loadProjectEnv, redact, assertSepoliaChain, assertConfiguredVerifier } = require("./load-env.cjs");
 const { createSample } = require("./sample-proof.cjs");
 
 const root = path.resolve(__dirname, "../../..");
@@ -16,12 +16,11 @@ async function main() {
   if (!process.env.SEPOLIA_RPC_URL) throw new Error("SEPOLIA_RPC_URL が設定されていません");
   const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
   if (deployment.chainId !== 11155111) throw new Error("deployment が Sepolia ではありません");
+  assertConfiguredVerifier(deployment.contractAddress);
 
   const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
   const network = await provider.getNetwork();
-  if (Number(network.chainId) !== 11155111) {
-    throw new Error("RPC の chain id が 11155111 ではありません");
-  }
+  assertSepoliaChain(network.chainId);
 
   const sample = await createSample();
   const contract = new ethers.Contract(deployment.contractAddress, abi, provider);

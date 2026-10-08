@@ -2,7 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const hre = require("hardhat");
 const { ethers } = hre;
-const { loadProjectEnv, redact } = require("./load-env.cjs");
+const { loadProjectEnv, redact, assertSepoliaChain } = require("./load-env.cjs");
 
 const EXPECTED_CHAIN_ID = 11155111;
 const root = path.resolve(__dirname, "../../..");
@@ -39,12 +39,10 @@ async function main() {
   console.log("deployer", address);
   console.log("balanceWei", balance.toString());
 
-  if (chainId === 1) {
-    fail("mainnet への接続を拒否しました");
-    return;
-  }
-  if (chainId !== EXPECTED_CHAIN_ID) {
-    fail("chain id が 11155111 ではありません");
+  try {
+    assertSepoliaChain(chainId);
+  } catch (err) {
+    fail(err.message);
     return;
   }
   if (network.name && network.name !== "unknown" && network.name !== "sepolia") {

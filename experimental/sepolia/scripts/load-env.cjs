@@ -35,6 +35,24 @@ function redact(err) {
   return msg;
 }
 
+function assertSepoliaChain(chainId) {
+  const id = Number(chainId);
+  if (id === 1) {
+    throw new Error("mainnet への接続を拒否しました");
+  }
+  if (id !== 11155111) {
+    throw new Error("RPC の chain id が 11155111 ではありません");
+  }
+}
+
+function assertConfiguredVerifier(deploymentAddress) {
+  const configured = process.env.SEPOLIA_VERIFIER_ADDRESS;
+  if (!configured || !configured.trim()) return;
+  if (configured.trim().toLowerCase() !== String(deploymentAddress).toLowerCase()) {
+    throw new Error("SEPOLIA_VERIFIER_ADDRESS が deployment の contract address と一致しません");
+  }
+}
+
 function normalizePrivateKey(value) {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error("SEPOLIA_PRIVATE_KEY が設定されていません");
@@ -46,4 +64,10 @@ function normalizePrivateKey(value) {
   return hex;
 }
 
-module.exports = { loadProjectEnv, redact, normalizePrivateKey };
+module.exports = {
+  loadProjectEnv,
+  redact,
+  normalizePrivateKey,
+  assertSepoliaChain,
+  assertConfiguredVerifier,
+};

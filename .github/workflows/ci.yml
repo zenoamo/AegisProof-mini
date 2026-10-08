@@ -1,0 +1,40 @@
+name: aegisproof-mini
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: install
+        run: npm ci
+
+      - name: build
+        run: npm run build
+
+      - name: test
+        run: |
+          npm run test:positive
+          node --test --test-force-exit tests/cli/cli.test.js tests/isolation.test.js
+
+      - name: negative test
+        run: npm run test:negative
+
+      - name: tamper and authenticity
+        run: |
+          npm run test:tamper
+          npm run test:authenticity
+
+      - name: artifact integrity test
+        run: npm run integrity

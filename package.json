@@ -1,0 +1,34 @@
+{
+  "name": "aegisproof-mini",
+  "version": "0.1.0",
+  "description": "Experimental minimal Groth16 proof, verification, and integrity line. Not AegisProof v2.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "aegisproof-mini": "./src/cli/index.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "prove": "node src/cli/index.js prove",
+    "verify": "node src/cli/index.js verify",
+    "integrity": "node src/cli/index.js integrity",
+    "test": "node --test --test-force-exit \"tests/**/*.test.js\"",
+    "test:positive": "node --test --test-force-exit \"tests/positive/**/*.test.js\"",
+    "test:negative": "node --test --test-force-exit \"tests/negative/**/*.test.js\"",
+    "test:tamper": "node --test --test-force-exit \"tests/tamper/**/*.test.js\"",
+    "test:authenticity": "node --test --test-force-exit \"tests/authenticity/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@noble/post-quantum": "0.7.1",
+    "circomlib": "2.0.5",
+    "circomlibjs": "0.1.7",
+    "snarkjs": "0.7.6"
+  },
+  "license": "GPL-3.0-or-later"
+}

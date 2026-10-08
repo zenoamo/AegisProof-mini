@@ -1,0 +1,16 @@
+node_modules/
+build/
+circuit/main_js/
+circuit/main.sym
+tools/bin/
+*.wtns
+*.witness
+input.json
+proof.json
+*.mldsa.sk
+keys/*secret*
+artifacts/manifest.sig
+keys/mldsa_public.json
+coverage/
+.env
+.env.*

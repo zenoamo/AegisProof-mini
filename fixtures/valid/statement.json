@@ -1,0 +1,4 @@
+{
+  "note": "Valid witnesses are created in memory by the test suite and are not stored.",
+  "publicSignals": ["commitment"]
+}

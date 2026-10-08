@@ -1,0 +1,38 @@
+{
+  "version": "aegisproof-mini-0.1.0",
+  "proofSystem": {
+    "protocol": "groth16",
+    "curve": "bn254",
+    "snarkjsCurveName": "bn128"
+  },
+  "circuit": {
+    "name": "commitment",
+    "hash": "poseidon",
+    "publicSignals": [
+      "commitment"
+    ],
+    "constraints": 415,
+    "privateInputs": 1,
+    "publicInputs": 1,
+    "circom": "2.2.3"
+  },
+  "ceremony": {
+    "phase1Power": 9,
+    "contributors": 1,
+    "production": false,
+    "toxicWastePersisted": false,
+    "note": "Development-only single-party Groth16 setup. Not AegisProof v2 production.zkey."
+  },
+  "toolchain": {
+    "node": "v24.18.0",
+    "snarkjs": "0.7.6",
+    "circomlib": "2.0.5",
+    "circomlibjs": "0.1.7"
+  },
+  "artifacts": {
+    "circuit.wasm": "16fdc8b9caed938299b530a6ebc9885dfdf49abe3c2d73d5cbb9ed1531fb79ea",
+    "circuit.r1cs": "29027acc31b3440d5a8b42df2be4e7db2ef86b543b69823b2bd5c9b896d1516e",
+    "circuit.zkey": "5b6a568c2ff858df76d6b09c4dd3eb8779a2ebf121f02d42ffc400ed9e207ac9",
+    "verification_key.json": "cad6c28700b34d60159ee1ab40c91878d0436aa677d6a97741dacea5803b0485"
+  }
+}

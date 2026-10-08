@@ -40,7 +40,27 @@
   "license": "GPL-3.0-or-later",
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.1.2",
-    "ethers": "^6.15.0",
+    "ethers": "^6.17.0",
     "hardhat": "^2.29.1"
+  },
+  "overrides": {
+    "underscore": "1.13.8",
+    "@ethersproject/providers": {
+      "ws": "8.21.0"
+    },
+    "mocha": {
+      "serialize-javascript": "7.1.2"
+    },
+    "hardhat": {
+      "adm-zip": "0.6.1",
+      "undici": "6.29.0",
+      "uuid": "11.1.1"
+    },
+    "solc": {
+      "tmp": "0.2.7"
+    },
+    "@sentry/node": {
+      "cookie": "0.7.2"
+    }
   }
 }

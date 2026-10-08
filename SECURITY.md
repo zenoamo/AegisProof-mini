@@ -82,6 +82,23 @@ ML-DSA-87 は任意の artifact authenticity layer です。署名対象は、�
 
 実行時の依存は `package.json` と `package-lock.json` で固定します。manifest の対象に `node_modules` は入りません。CI は `npm ci` を使います。ロックファイルに無いパッケージを検証の前提にしないでください。
 
+`package.json` の `overrides` は、親パッケージの semver 範囲では修正版に届かない transitive dependency だけを、その親の呼び出し方を確認したうえで差し替えています。直接依存には加えていません。
+
+| override | 理由 |
+| --- | --- |
+| `underscore@1.13.8` | `snarkjs` → `bfj` → `jsonpath` が `1.13.6` を固定している。`1.13.8` は同じ 1.13 系の修正版 |
+| `@ethersproject/providers` の `ws@8.21.0` | `circomlibjs` が依存する ethers 5 が `ws@8.18.0` を固定している。Hardhat 自身の `ws@7` は対象外なので、全体の `ws` は上げていない |
+| `mocha` の `serialize-javascript@7.1.2` | Hardhat 2.29 の mocha 11 は `^6.0.2` のまま。mocha は関数として呼ぶだけで、7 系でもその形 |
+| `hardhat` の `adm-zip@0.6.1` | Hardhat 2.29 は `^0.4.16`。使っているのは `new AdmZip(path)` と `extractAllTo` |
+| `hardhat` の `undici@6.29.0` | Hardhat 2.29 は undici 5。6.29 は `request`、`Pool`、`ProxyAgent`、`Client`、`Agent` を持つ 6 系の修正版。undici 7 以降には上げていない |
+| `hardhat` の `uuid@11.1.1` | 修正版は 11 系で、8 系には戻されていない。Hardhat は `v4` だけを動的 import する |
+| `solc` の `tmp@0.2.7` | solc は `tmp@0.0.33` を固定し、`fileSync({ postfix })` だけを使う |
+| `@sentry/node` の `cookie@0.7.2` | Hardhat の `@sentry/node@5` は `cookie@^0.4.1`。0.7 は修正が入った 0.x の最終版で、cookie 1 以降には上げていない |
+
+`ethers` 6 は `^6.17.0` です。この版が直接依存する `ws` は `8.21.0` で、8.20.1 未満の修正範囲に入ります。
+
+`elliptic@6.6.1` は `circomlibjs` → ethers 5 から入ります。公開されている最新版が 6.6.1 であり、置き換える修正版はありません。`snarkjs`、`circomlib`、`circomlibjs`、Hardhat 3 への major 更新では解消していません。
+
 circom は pragma `2.2.2`、このスナップショットのコンパイラ記録は `2.2.3` です。PATH にその版が無いとき、ビルドは `tools/circom-2.2.3-sha256.json` の公式バイナリを取得して SHA-256 を確認します。
 
 ## Sepolia

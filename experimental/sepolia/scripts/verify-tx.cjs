@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { ethers } = require("ethers");
-const { loadProjectEnv, redact, normalizePrivateKey } = require("./load-env.cjs");
+const { loadProjectEnv, redact, normalizePrivateKey, assertSepoliaChain, assertConfiguredVerifier } = require("./load-env.cjs");
 
 const root = path.resolve(__dirname, "../../..");
 const deploymentPath = path.join(__dirname, "../deployments/sepolia.json");
@@ -20,12 +20,11 @@ async function main() {
   const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
   const proof = JSON.parse(fs.readFileSync(proofPath, "utf8"));
   if (deployment.chainId !== 11155111) throw new Error("deployment が Sepolia ではありません");
+  assertConfiguredVerifier(deployment.contractAddress);
 
   const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
   const network = await provider.getNetwork();
-  if (Number(network.chainId) !== 11155111) {
-    throw new Error("RPC の chain id が 11155111 ではありません");
-  }
+  assertSepoliaChain(network.chainId);
   const wallet = new ethers.Wallet(key, provider);
   if (wallet.address.toLowerCase() !== deployment.deployer.toLowerCase()) {
     throw new Error("送信元アドレスが deployment の deployer と一致しません");

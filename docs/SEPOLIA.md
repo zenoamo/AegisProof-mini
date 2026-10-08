@@ -47,7 +47,11 @@ true / false
 
 証明の座標は、手で並べ替えず、`snarkjs.groth16.exportSolidityCallData` の出力を使います。
 
-コントラクトが検査するのは Groth16 だけです。SHA-256 の成果物完全性も、ML-DSA-87 の真正性も、チェーン上では実行しません。
+コントラクトが検査するのは Groth16 だけです。SHA-256 の成果物完全性も、ML-DSA-87 の真正性も、チェーン上では実行しません。true は、この verification key の下で証明と `commitment` が受理されたことです。`secret` の所持者を特定せず、セットアップのエントロピーが破棄されたことも示しません。
+
+`verifyProof` の公開信号は `uint[1]` です。引数の個数が違う呼び出しは ABI で一致せず revert します。状態は変わりません。BN254 のスカラー体の外の commitment は、生成 verifier が false を返します。改ざんした proof や commitment も false です。これらを revert には変えていません。
+
+`verifyAndRecord` は replay nonce を持ちません。成功でも失敗でも、`lastCommitment`、`lastValid`、`lastSender` をその呼び出しの値で上書きします。同じ証明を再度送ると、再び記録します。
 
 ## Local proof generation
 

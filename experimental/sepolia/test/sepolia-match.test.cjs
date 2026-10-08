@@ -4,6 +4,8 @@ const assert = require("node:assert/strict");
 const hre = require("hardhat");
 const { ethers } = hre;
 const { createSample } = require("../scripts/sample-proof.cjs");
+const { assertDeploymentRecord, readDeployment } = require("../scripts/deployment-record.cjs");
+const { assertSepoliaChain } = require("../scripts/load-env.cjs");
 
 const deploymentPath = path.join(__dirname, "../deployments/sepolia.json");
 const abi = [
@@ -15,23 +17,22 @@ function bumpHex(value) {
   return ethers.toBeHex(BigInt(value) + 1n, 32);
 }
 
+const SCALAR_FIELD = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 const live = fs.existsSync(deploymentPath) && Boolean(process.env.SEPOLIA_RPC_URL);
 
 (live ? describe : describe.skip)("deployed Sepolia verifier", function () {
   let local;
   let remote;
   let sample;
+  let provider;
+  let deployment;
 
   before(async function () {
-    const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
-    if (deployment.chainId !== 11155111) {
-      throw new Error("deployment が Sepolia ではありません");
-    }
-    const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+    deployment = readDeployment(deploymentPath);
+    assertDeploymentRecord(deployment);
+    provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
     const network = await provider.getNetwork();
-    if (Number(network.chainId) !== 11155111) {
-      throw new Error("RPC の chain id が 11155111 ではありません");
-    }
+    assertSepoliaChain(network.chainId);
     remote = new ethers.Contract(deployment.contractAddress, abi, provider);
     sample = await createSample();
     const factory = await ethers.getContractFactory("AegisProofMiniSepolia");
@@ -71,5 +72,38 @@ const live = fs.existsSync(deploymentPath) && Boolean(process.env.SEPOLIA_RPC_UR
 
   it("reports one public signal on Sepolia", async function () {
     assert.equal(await remote.publicSignalCount(), 1n);
+  });
+
+  it("has bytecode at the recorded address", async function () {
+    const code = await provider.getCode(deployment.contractAddress);
+    assert.equal(code === "0x", false);
+  });
+
+  it("matches the recorded deployment and verification receipts", async function () {
+    const deployed = await provider.getTransactionReceipt(deployment.deployTransactionHash);
+    const verified = await provider.getTransactionReceipt(deployment.verification.transactionHash);
+    assert.equal(deployed.status, 1);
+    assert.equal(deployed.blockNumber, deployment.blockNumber);
+    assert.equal(verified.status, 1);
+    assert.equal(verified.blockNumber, deployment.verification.blockNumber);
+    assert.equal(verified.to.toLowerCase(), deployment.contractAddress.toLowerCase());
+  });
+
+  it("matches an out-of-field public signal", async function () {
+    const args = { ...sample.args, pubSignals: [ethers.toBeHex(SCALAR_FIELD, 32)] };
+    await pair(args, false);
+  });
+
+  it("reverts a different public input arity on Sepolia", async function () {
+    const other = new ethers.Interface([
+      "function verifyProof(uint256[2],uint256[2][2],uint256[2],uint256[2]) view returns (bool)",
+    ]);
+    const data = other.encodeFunctionData("verifyProof", [
+      sample.args.pA,
+      sample.args.pB,
+      sample.args.pC,
+      [sample.args.pubSignals[0], sample.args.pubSignals[0]],
+    ]);
+    await assert.rejects(() => provider.call({ to: deployment.contractAddress, data }));
   });
 });

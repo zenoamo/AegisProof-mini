@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { SCHEMA, VERSION } from "../../../src/constants.js";
+import { SCHEMA, VERSION, PUBLIC_SIGNALS } from "../../mini-0.2.0/src/constants.js";
+import * as rootApi from "../../../src/index.js";
+import * as mini020 from "../../mini-0.2.0/src/index.js";
 import { createAdapter } from "../src/adapter.js";
 import { TeeBoundaryError, hasSecretField, parsePublicResult, serializePublicResult } from "../src/envelope.js";
 import { createLocalBackend } from "../src/local-backend.js";
@@ -85,6 +87,14 @@ function adapterWith(backend, verify = async () => true) {
 function request(extra = {}) {
   return { secret: SECRET, ...SCOPE, ...extra };
 }
+
+test("the 0.1.0 package export does not gain the 0.2.0 statement builder", () => {
+  assert.equal(Object.hasOwn(rootApi, "statementFromParts"), false);
+  assert.equal(rootApi.PUBLIC_SIGNALS.length, 1);
+  assert.equal(typeof mini020.statementFromParts, "function");
+  assert.equal(PUBLIC_SIGNALS.length, 5);
+  assert.equal(mini020.PUBLIC_SIGNALS.length, 5);
+});
 
 describe("local tee adapter", () => {
   test("local backend exposes the injected interface and no tee claim", async () => {

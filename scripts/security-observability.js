@@ -130,8 +130,11 @@ function checkSecrets(file, text) {
   });
 }
 
+const WEAK_CRYPTO_CODE = new Set([".js", ".cjs", ".mjs", ".ts", ".tsx", ".sol", ".circom"]);
+
 function checkWeakCrypto(file, text) {
   if (!inCryptoPath(file)) return;
+  if (!WEAK_CRYPTO_CODE.has(path.posix.extname(file).toLowerCase())) return;
   const rules = [
     [/Math\.random\s*\(/, "Math.random"],
     [/createHash\(\s*["'](?:md5|sha1)["']\s*\)/i, "MD5 or SHA-1"],
@@ -191,6 +194,7 @@ function staticScan() {
   console.log("- public addresses, contract addresses, and deployment transaction hashes");
   console.log("- the explicit non-secret circuit fixture in tests/");
   console.log("- gitignored .env and node_modules");
+  console.log("- documentation mentions of weak algorithms, including Math.random(), outside executable sources");
   console.log("- Math.random outside src/, scripts/, and experimental/");
   if (findings.length === 0) {
     console.log("static checks: ok");

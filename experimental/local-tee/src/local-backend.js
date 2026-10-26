@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Ordinary local Node.js process. Not a TEE, and not hardware isolation.
-import { prove } from "../../../src/index.js";
+import { prove } from "../../mini-0.2.0/src/index.js";
 import { hasSecretField } from "./envelope.js";
 
 export const LOCAL_BACKEND_IDENTITY = Object.freeze({

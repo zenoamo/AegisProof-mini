@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { statementFromParts, verify } from "../../../src/index.js";
-import { TEST_EPOCH, TEST_POLICY_ID, TEST_SECRET, TEST_CONTEXT } from "../../../tests/helpers.js";
+import { statementFromParts, verify } from "../../mini-0.2.0/src/index.js";
+import { TEST_EPOCH, TEST_POLICY_ID, TEST_SECRET, TEST_CONTEXT } from "../../mini-0.2.0/tests/helpers.js";
 import { createAdapter } from "../src/adapter.js";
 import { hasSecretField, parsePublicResult } from "../src/envelope.js";
 import { createLocalBackend } from "../src/local-backend.js";

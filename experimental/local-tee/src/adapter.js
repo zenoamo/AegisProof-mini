@@ -2,7 +2,7 @@
 // Application-side adapter. A backend is injected and is not trusted.
 // Secret stays in the arguments to the backend. The public result carries only
 // the commitment and the existing proof envelope.
-import { readEnvelope, statementFromParts, verify } from "../../../src/index.js";
+import { readEnvelope, statementFromParts, verify } from "../../mini-0.2.0/src/index.js";
 import { InputError } from "../../../src/errors.js";
 import { parseFieldElement } from "../../../src/field.js";
 import {

@@ -80,7 +80,16 @@ function readBytes(filePath) {
   }
 }
 
-function writeExclusive(filePath, bytes) {
+function writeExclusive(filePath, bytes, expectedSha256) {
+  if (
+    !Buffer.isBuffer(bytes) ||
+    typeof expectedSha256 !== "string" ||
+    !/^[0-9a-f]{64}$/.test(expectedSha256) ||
+    sha256(bytes) !== expectedSha256
+  ) {
+    throw new Error("書き込みデータの SHA-256 検証に失敗しました");
+  }
+
   const fd = fs.openSync(filePath, "wx", 0o755);
   try {
     fs.writeFileSync(fd, bytes);
@@ -89,9 +98,9 @@ function writeExclusive(filePath, bytes) {
   }
 }
 
-function replaceVerified(filePath, bytes) {
+function replaceVerified(filePath, bytes, expectedSha256) {
   const partial = `${filePath}.${randomBytes(8).toString("hex")}.partial`;
-  writeExclusive(partial, bytes);
+  writeExclusive(partial, bytes, expectedSha256);
   fs.rmSync(filePath, { force: true });
   try {
     fs.renameSync(partial, filePath);
@@ -101,10 +110,10 @@ function replaceVerified(filePath, bytes) {
   }
 }
 
-function materializeVerified(fileName, bytes) {
+function materializeVerified(fileName, bytes, expectedSha256) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "aegisproof-circom-"));
   const dest = path.join(dir, fileName);
-  writeExclusive(dest, bytes);
+  writeExclusive(dest, bytes, expectedSha256);
   return dest;
 }
 
@@ -124,7 +133,7 @@ async function verifiedBytes(spec, cachePath) {
     throw new Error("circom の SHA-256 が固定値と一致しません");
   }
   fs.mkdirSync(path.dirname(cachePath), { recursive: true });
-  replaceVerified(cachePath, untrusted);
+  replaceVerified(cachePath, untrusted, spec.sha256);
   return untrusted;
 }
 
@@ -134,7 +143,7 @@ export async function ensureCircom() {
   const spec = releaseForThisHost(readPin());
   const cachePath = path.join(root, "tools", "bin", spec.file);
   const bytes = await verifiedBytes(spec, cachePath);
-  const executable = materializeVerified(spec.file, bytes);
+  const executable = materializeVerified(spec.file, bytes, spec.sha256);
   const probe = launchProbe(executable);
   if (probe.error || probe.status !== 0) {
     const err = new Error("pin 済み circom を起動できません");

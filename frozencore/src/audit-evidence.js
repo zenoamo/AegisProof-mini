@@ -77,39 +77,24 @@ function sameFileIdentity(left, right) {
 
 function readRegularFileSafely(filePath) {
   let fd;
-  let initial;
 
   try {
-    initial = fs.lstatSync(filePath);
-  } catch (error) {
-    return error?.code === "ENOENT"
-      ? { status: "missing" }
-      : { status: "rejected" };
-  }
-
-  if (initial.isSymbolicLink() || !initial.isFile()) {
-    return { status: "rejected" };
-  }
-
-  try {
-    const flags = fs.constants.O_RDONLY |
+    const flags =
+      fs.constants.O_RDONLY |
       (fs.constants.O_NOFOLLOW ?? 0);
 
+    // Open first; avoid checking the path before opening it.
     fd = fs.openSync(filePath, flags);
 
     const opened = fs.fstatSync(fd);
-    if (!opened.isFile() || !sameFileIdentity(initial, opened)) {
+    if (!opened.isFile()) {
       return { status: "rejected" };
     }
 
     const data = fs.readFileSync(fd);
     const after = fs.fstatSync(fd);
-    const current = fs.lstatSync(filePath);
 
     if (
-      current.isSymbolicLink() ||
-      !current.isFile() ||
-      !sameFileIdentity(opened, current) ||
       !sameFileIdentity(opened, after) ||
       opened.size !== after.size ||
       opened.mtimeMs !== after.mtimeMs ||
@@ -118,9 +103,20 @@ function readRegularFileSafely(filePath) {
       return { status: "rejected" };
     }
 
+    const current = fs.lstatSync(filePath);
+    if (
+      current.isSymbolicLink() ||
+      !current.isFile() ||
+      !sameFileIdentity(opened, current)
+    ) {
+      return { status: "rejected" };
+    }
+
     return { status: "ok", data };
-  } catch {
-    return { status: "rejected" };
+  } catch (error) {
+    return error?.code === "ENOENT"
+      ? { status: "missing" }
+      : { status: "rejected" };
   } finally {
     if (fd !== undefined) {
       try {

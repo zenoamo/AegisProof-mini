@@ -13,12 +13,13 @@ AegisProof-mini is an experimental reference implementation for reproducible Gro
 
 | | |
 | --- | --- |
-| 証明すること | 秘密値 `secret` を知っていて、その Poseidon commitment が公開値 `commitment` と一致する |
-| 暗号方式 | Groth16 / BN254。回路内ハッシュは circomlib の `Poseidon(1)`。公開信号は `commitment` の 1 個 |
+| 証明すること | 秘密値 `secret` の Poseidon commitment。公開信号は `commitment` 1 個。5 信号は `experimental/mini-0.2.0` |
+| 暗号方式 | Groth16 / BN254。直下の公開信号は `commitment`。0.2.0 は `commitment`、`nullifier`、`contextHash`、`policyId`、`epoch` |
 | Security model | Groth16 の証明検証、SHA-256 の成果物完全性、任意の ML-DSA-87 真正性は別の層。開発用の単一貢献者セレモニー |
 | Sepolia | chain ID `11155111` 上の experimental integration。Core protocol ではない |
-| AegisProof v2 | このリポジトリは v2 の Frozen Core を含まず、30 フィールドの publicSignals も移植していない |
-| 位置づけ | experimental / development reference。production の保証はない |
+| AegisProof v2 | このリポジトリは v2 の本番 Frozen Core を含まない。v2 の 30 個の無名信号は mini の検証器が拒否する |
+| 証明基盤 | このリポジトリの中の FrozenCore。mini 0.2.0 の 5 信号と、実験用 30 信号は別回路・別鍵である |
+| 位置づけ | experimental / development reference。production の保証はない。0.2.0、`frozencore/`、`experimental/local-tee/`、5 信号のローカル契約は作業ツリーにあり、コミット `90df4d2` には無い |
 
 文書の入口は [docs/README.md](docs/README.md) です。セキュリティ上の報告は [SECURITY.md](SECURITY.md)、参加方法は [CONTRIBUTING.md](CONTRIBUTING.md) です。
 
@@ -48,24 +49,57 @@ It must not be treated as a replacement for the
 production AegisProof v2 system.
 ```
 
-このリポジトリは AegisProof v2 の Frozen Core を含まず、それを変更しません。`production.zkey`、v2 の WASM、v2 の R1CS は使いません。公開信号は v2 の 30 フィールドではなく、`commitment` の 1 個です。
+このリポジトリは AegisProof v2 の本番 Frozen Core を含まず、それを変更しません。`production.zkey`、v2 の WASM、v2 の R1CS は使いません。v2 を名乗る 30 個の無名公開信号は、mini の検証器が拒否します。
+
+このリポジトリ内の FrozenCore は、証明対象と回路と鍵を世代ごとに持つ基盤の名前です。ルートの `verifyStatement` が検証するのは mini 0.1.0 の 1 信号と、`frozencore/circuit/statement.circom` の実験用 30 信号です。mini 0.2.0 は `experimental/mini-0.2.0/` にあり、ルートの検証器はその鍵を使いません。30 信号版は唯一の正式仕様ではありません。同じ秘密の commitment は、mini では `Poseidon(secret)`、30 信号版では `Poseidon(16, secret)` であり、証明は交換できません。入口は `src/foundation.js` の `verifyStatement` です。
 
 ## 3. What does it prove?
 
-回路 `circuit/main.circom` が検査する命題は次の一つです。
+ルートのプロトコルバージョンは `aegisproof-mini-0.1.0`、証明封筒のスキーマは `aegisproof-mini-public-signals-v1` です。公開信号は `commitment` 1 個で、`Poseidon(secret)` です。
 
-> 秘密値 `secret` を知っていて、その Poseidon commitment が公開値 `commitment` と一致する。
+次の 5 信号は `experimental/mini-0.2.0` のプロトコルです。バージョンは `aegisproof-mini-0.2.0`、スキーマは `aegisproof-mini-public-signals-v2` です。ルートの検証器はこの封筒を受理しません。
+
+公開信号の順序は固定です。型はすべて BN254 スカラー体の正規 10 進文字列です。先頭ゼロは拒否します。
+
+| Index | 名前 | 誰が計算するか |
+| --- | --- | --- |
+| 0 | `commitment` | `Poseidon(secret)`。0.1.0 のコミットメント関数と同じ |
+| 1 | `nullifier` | `Poseidon(3, secret, contextHash, policyId, epoch)` |
+| 2 | `contextHash` | `Poseidon(2, context)` |
+| 3 | `policyId` | 呼び出し側が選ぶ識別子。回路はこれを nullifier に束縛する |
+| 4 | `epoch` | 呼び出し側が選ぶ世代。回路はこれを nullifier に束縛する |
+
+ドメイン定数 `2` と `3` は `src/statement.js` と `experimental/mini-0.2.0/circuit/main.circom` で同じ値です。秘密ではありません。直下の `circuit/main.circom` はこの定数を使いません。
 
 ```text
-private input: secret
-public input:  commitment
-constraint:    commitment === Poseidon(secret)
-publicSignals: [commitment]
+private: secret, context
+public:  commitment, nullifier, contextHash, policyId, epoch
 ```
 
-`Poseidon` は circomlib の `Poseidon(1)` です。証明に載る公開値は `commitment` だけです。`secret` は証明ファイルへ書きません。
+`commitment` の関数は 0.1.0 と同じ `Poseidon(secret)` です。証明文は 0.1.0 と互換ではありません。同じ secret でも、context、policyId、epoch が違えば nullifier は別の値になります。全用途で一つの nullifier にすると、同じ secret の証明が nullifier で結び付きます。このプロトコルは、その結び付きを避けるため、再利用範囲を `(secret, contextHash, policyId, epoch)` にしました。
 
-検証が成功すると、その公開 `commitment` について、同梱の verification key の下で Groth16 証明が受理された、という意味です。この鍵は開発用の単一貢献者セレモニーで作られているため、本番の健全性を主張するものではありません。詳細は Security assumptions を見てください。
+コンテキストの元データがバイト列のときは、`contextFieldFromBytes` が最短のビッグエンディアン符号なし整数にします。長さは 1 から 31 バイトです。空列と、長さ 2 以上の先頭ゼロは拒否します。ゼロは 1 バイトの `0x00` だけです。UTF-8 は BOM 無しの `TextEncoder` です。回路が見るのはその体元素 `context` であり、バイト列そのものではありません。JavaScript の `contextHash` と、回路が公開する `contextHash` が一致することをテストします。
+
+`policyId` はポリシー文書を指す識別子です。回路は「この証明がその識別子に束縛されている」ことまでを制約します。ポリシー条件を満たすことは証明しません。条件そのものがこのリポジトリには定義されていないためです。
+
+`epoch` は世代の識別子です。回路は証明をその値に束縛します。現在の epoch は決めません。ローカル実験コントラクトでは、所有者が `setEpoch` した値だけを受理します。それ以外の epoch の証明は、証明が数学的に正しくてもコントラクトが拒否します。
+
+回路が保証すること:
+
+- `commitment`、`contextHash`、`nullifier` が上の Poseidon 式と一致する
+- 公開信号を入れ替えると、その証明は検証に失敗する
+
+回路が保証しないこと:
+
+- ポリシー条件への適合
+- epoch が現在時刻や許可された世代であること
+- nullifier が未使用であること
+
+未使用の確認は検証者の状態です。ローカルコントラクト `AegisProofMiniStatement` は、使用済み nullifier を記録し、再利用を revert します。無効な証明では記録しません。デプロイ済みの `AegisProofMiniSepolia` は 0.1.0 の 1 信号のままです。この作業ではそのコントラクトを再デプロイしていません。
+
+検証鍵は `npm run build` の開発用単一貢献者セレモニーで作り直しています。`ceremony.production` は `false` です。トラップドアを捨てたことは検証していません。以前の verification key を信頼していた場合、この鍵は別のセットアップです。
+
+`secret` と `context` は証明封筒へ書きません。
 
 ## 4. Architecture
 
@@ -76,7 +110,7 @@ secret
   ↓
 Poseidon(secret)
   ↓
-commitment          ← publicSignals の唯一の要素
+commitment, nullifier, contextHash, policyId, epoch
   ↓
 Groth16 / BN254
   ↓
@@ -125,7 +159,7 @@ manifest と対象ファイルをまとめて差し替えられる状況では�
 
 回路の中のハッシュは Poseidon です。成果物の完全性に使うハッシュは SHA-256 です。
 
-Poseidon は circomlib が BN254 上の回路向けに提供しているハッシュです。このステートメントは現在の manifest で **415 制約**です。SHA-256 を R1CS に入れると制約数が大きくなり、このリポジトリが採っている小さな回路から外れます。回路コメントでも、SHA-256 は完全性レイヤ側で使う、としています。
+Poseidon は circomlib が BN254 上の回路向けに提供しているハッシュです。直下のステートメントは manifest で **415 制約**です。`experimental/mini-0.2.0` は **1767 制約**です。SHA-256 を R1CS に入れると制約数が大きくなり、このリポジトリが採っている小さな回路から外れます。完全性検査の SHA-256 は回路の外です。
 
 したがって、証明が言っている「commitment は secret のハッシュである」は SHA-256 の意味ではありません。Poseidon commitment です。
 
@@ -139,15 +173,15 @@ Poseidon は circomlib が BN254 上の回路向けに提供しているハッ�
 | Curve | BN254。snarkjs の証明オブジェクトと verification key では曲線名が `bn128`。mini の manifest と証明封筒では `bn254` |
 | Circuit framework | circom。pragma は `2.2.2`。このスナップショットのコンパイラ記録は circom `2.2.3` |
 | snarkjs | `0.7.6` |
-| circomlib | `2.0.5`（`Poseidon(1)`） |
+| circomlib | `2.0.5`（`Poseidon(1)`、`Poseidon(2)`、`Poseidon(5)`） |
 | circomlibjs | `0.1.7`（回路外で同じ Poseidon を計算） |
 | Node.js | `package.json` の `engines` は `>=20`。CI は Node.js 22。この成果物スナップショットの manifest には生成時の Node.js `v24.18.0` が記録されている |
-| Public inputs | 1（`commitment`） |
-| Private inputs | 1（`secret`） |
-| Constraints | 415 |
-| Powers of tau | 9。貢献者 1。`ceremony.production` は `false` |
+| Public inputs | 直下は 1（`commitment`）。0.2.0 は 5 |
+| Private inputs | 直下は 1（`secret`）。0.2.0 は 2（`secret`、`context`） |
+| Constraints | 直下は 415。0.2.0 は 1767 |
+| Powers of tau | 11。貢献者 1。`ceremony.production` は `false` |
 | Authenticity | ML-DSA-87（`@noble/post-quantum` `0.7.1`）。任意 |
-| Public signal schema | `aegisproof-mini-public-signals-v1` |
+| Public signal schema | 直下は `aegisproof-mini-public-signals-v1`。0.2.0 は `aegisproof-mini-public-signals-v2` |
 | License | `package.json` は `GPL-3.0-or-later`。`LICENSE` は GNU GPL version 3 |
 
 `bn128` と BN254 は、この実装では同じ曲線を指す二つの名前です。snarkjs がファイルへ書く名前が `bn128` で、mini が自分の manifest と証明封筒に書く名前が `bn254` です。
@@ -176,6 +210,7 @@ artifacts/baseline.json       コミットされたスナップショットの�
 
 scripts/build.js              コンパイルと開発用セレモニー
 scripts/security-observability.js  秘密の実値、弱い暗号 API、audit の分類。鍵検査は既存 CLI
+scripts/release.ps1           ローカル専用の release gate。GitHub Actions からは呼ばない
 tests/                        正常系、異常系、改ざん、ML-DSA
 fixtures/                     公開スキーマの例。秘密は置いていない
 experimental/sepolia/         Sepolia 上で同じ Groth16 検証を実行する拡張
@@ -206,12 +241,14 @@ node src/cli/index.js verify --proof proof.json
 node src/cli/index.js integrity
 ```
 
-`input.json` の形は次です。`secret` と `commitment` は 10 進文字列です。
+`input.json` の形は次です。値は正規化された 10 進文字列です。`commitment`、`nullifier`、`contextHash` は省くと実装が計算します。渡した場合は、計算結果と一致しないと回路が拒否します。
 
 ```json
 {
   "secret": "<decimal field element>",
-  "commitment": "<Poseidon(secret) as a decimal string>"
+  "context": "<decimal field element>",
+  "policyId": "<decimal field element>",
+  "epoch": "<decimal field element>"
 }
 ```
 
@@ -282,51 +319,69 @@ node src/cli/index.js authenticity \
 - AegisProof-mini currently uses a single-contributor development ceremony. production-grade MPC ceremony ではなく、toxic waste の破棄は独立に検証できません。SHA-256 と ML-DSA-87 はこの setup assumption を消しません。
 - SHA-256 層は、manifest とファイルをまとめて置き換える攻撃者に対して、外部の真正性を作りません。
 - ML-DSA-87 の検証は任意です。`verify` は署名を見ません。
-- TEE も ClaimsGate も、このリポジトリにはありません。
-- AegisProof v2 の 30 フィールド publicSignals はありません。その形の入力は mini が拒否します。
+- ハードウェア TEE もリモートアテステーションも、このリポジトリにはありません。`experimental/local-tee/` は通常の Node.js プロセスで、`hardwareIsolation` と `remoteAttestation` は false です。
+- ルートの mini 検証器は、`commitment` 1 個以外を拒否します。5 信号、30 個の無名信号、FrozenCore 実験回路の封筒は、直下の鍵では通りません。
+- 実験用 30 信号回路は `frozencore/` にあり、別の開発用セレモニーです。期限、失効根、承認コミットメント、ZKVM コミットメント、アテステーションコミットメントは、それぞれの外部検証を行いません。詳細は [frozencore/SPEC.md](frozencore/SPEC.md) です。
 - STARK や、耐量子証明方式への移行実装はありません。ML-DSA-87 は成果物ダイジェストへの署名であり、証明方式の置換ではありません。
 - 回路内ハッシュは Poseidon、成果物ハッシュは SHA-256 です。同じ「ハッシュ」ではありません。
 - production のセキュリティシステムとして設計されたものではありません。`package.json` の説明も experimental であり、AegisProof v2 ではないと書いています。
-- Sepolia 連携は、同じ開発用 verification key で Groth16 を Ethereum 上で実行する拡張です。手順は「Sepolia Integration」にあります。
+- デプロイ記録の Sepolia 契約は、公開信号 1 個の検証器です。5 信号の `AegisProofMiniStatement` は `experimental/mini-0.2.0` のローカル実験であり、この記録のアドレスへはデプロイしていません。
 
-## 14. AegisProof v2 との関係
+## 14. 証明基盤と AegisProof v2
 
-このリポジトリが自分と v2 を区別している範囲です。v2 のソースはこのツリーに無いので、v2 の実装詳細はここから確認できません。
+FrozenCore はこのリポジトリの中の証明基盤です。公開信号の個数そのものではなく、回路と鍵とスキーマの組を指します。AegisProof v2 の本番 Frozen Core は、このツリーにありません。
 
-| | AegisProof v2 | AegisProof-mini |
-| --- | --- | --- |
-| 位置づけ | このリポジトリが replacement ではないと述べている production 系統 | experimental / development reference |
-| Frozen Core | このリポジトリはそれを変更しない | 独自の回路、wasm、zkey、verification key |
-| 公開信号 | このリポジトリの fixture が「v2 は 30 個」と記録し、mini は拒否する | `commitment` の 1 個 |
-| 証明 | このリポジトリは v2 の成果物を使わない | Groth16 / BN254。開発用セレモニー |
-| TEE / ClaimsGate | このリポジトリには無い | 無い |
-| STARK / 耐量子証明への移行 | このリポジトリには無い | 無い。ML-DSA-87 は任意の成果物署名 |
+| 世代 | スキーマ | 公開信号 | 作業ツリーで検証できるか | 鍵 |
+| --- | --- | --- | --- | --- |
+| mini 0.1.0 | `aegisproof-mini-public-signals-v1` | `commitment` の 1 個。`Poseidon(secret)` | ルートの検証器がする | 直下の `circuit/mini.zkey` と `keys/verification_key.json`。`nPublic` は 1 |
+| mini 0.2.0 | `aegisproof-mini-public-signals-v2` | 5 個。nullifier は `Poseidon(3, secret, contextHash, policyId, epoch)` | ルートの検証器はしない。実験ツリーの検証器だけが対象。ptau は無く、`zkey verify r1cs` は未完了 | `experimental/mini-0.2.0/circuit/mini.zkey` と `experimental/mini-0.2.0/keys/verification_key.json`。`nPublic` は 5 |
+| 実験 30 信号 | `frozencore-public-signals-v1` | 30 個。commitment は `Poseidon(16, secret)`。nullifier は policyVersion、executionId、domainSeparator を含む | `verifyStatement` でできる。唯一の正式仕様ではない。未コミット | 実行鍵は `frozencore/dev/statement/`。`frozencore/artifacts/` と `frozencore/keys/` はレガシーで、実行経路は使わない |
+| guest | `frozencore-guest-journal-v1` | 4 個。`zkvmProgramId`、`inputRoot`、`outputCommitment`、`executionId` | `verifyStatement` は選ばない。専用の guest 検証器と開発用鍵はある。未コミット | `frozencore/dev/guest/`。statement の鍵ではない |
+
+`src/foundation.js` は封筒のスキーマで検証器を選びます。5 信号の証明を 30 信号の鍵で検証すること、およびその逆は、成功になりません。値を並べ替えたり数を合わせたりしても、証明対象が同じになるわけではありません。
+
+両方のセレモニーは単一貢献者の開発用です。複数人の本番セレモニーではなく、毒性パラメータの破棄は確認できません。レガシーの statement ptau は `frozencore/setup/statement/pot_final.ptau`、実行中の開発用 ptau は `frozencore/dev/statement/pot_final.ptau` と `frozencore/dev/guest/pot_final.ptau` です。バイト列は互いに違います。mini 0.2.0 の ptau は残っていません。
 
 ```text
-AegisProof
-    ├── v2     production。Frozen Core。このリポジトリは触らない
-    └── mini   このリポジトリ。最小の証明、検証、成果物完全性
+AegisProof-mini
+    ├── FrozenCore（このリポジトリの証明基盤）
+    │     ├── mini 0.1.0          circuit/main.circom      1 signal
+    │     ├── mini 0.2.0          experimental/mini-0.2.0/circuit/main.circom      5 signals
+    │     ├── statement 0.1.0     frozencore/circuit/statement.circom   30 signals
+    │     └── guest               frozencore/circuit/guest.circom       4 signals, dev key, not routed by verifyStatement
+    └── AegisProof v2 の本番 Frozen Core は、このツリーに無い
 ```
+
+v2 のソースはこのツリーに無いので、v2 の 30 フィールドの意味はここから確認できません。`fixtures/invalid/v2-public-signals.json` は 30 個の `"0"` であり、実験 30 信号スキーマではありません。
 
 ## 15. Reproducibility
 
 このスナップショットの価値は、小さな回路で、証明生成、検証、成果物の完全性検査、改ざん時の失敗を同じツリーの中で再現できることです。
 
-`npm ci` のあと `npm run keys:check` は、コミットされている成果物と manifest と baseline を検査します。`npm test` と `npm run integrity` は、その時点の成果物と manifest の対応を検査します。CI は build の前に `keys:check` を実行し、build のあとの `test:positive` は作り直したセレモニーの内部整合を見ます。`npm run build` は別の開発用セレモニーを行うため、zkey、verification key、manifest のハッシュは変わります。baseline はそのとき更新しません。wasm と r1cs は、同じ circom `2.2.3` とこの `circuit/main.circom` に対するコンパイル結果です。zkey が毎回同じバイト列になることは主張しません。
+`npm ci` のあと `npm run keys:check` は、直下にコミットされている 1 信号の成果物と manifest と baseline を検査します。`npm test` と `npm run integrity` もその成果物を見ます。CI は `npm run build` を実行しません。`AEGIS_MINI_010_REBUILD=1` を付けた `npm run build` だけが、直下の zkey と verification key を新しい開発用セレモニーで置き換えます。baseline はそのとき更新しません。
 
-以下は、この作業ツリーのファイルから計算した SHA-256 です。`artifacts/manifest.json` および `artifacts/manifest.sha256` と一致しています。
+以下は `experimental/mini-0.2.0/artifacts/` の SHA-256 です。直下の `artifacts/` ではありません。直下の wasm は `16fdc8b9caed938299b530a6ebc9885dfdf49abe3c2d73d5cbb9ed1531fb79ea`、r1cs は `29027acc31b3440d5a8b42df2be4e7db2ef86b543b69823b2bd5c9b896d1516e`、zkey は `5b6a568c2ff858df76d6b09c4dd3eb8779a2ebf121f02d42ffc400ed9e207ac9`、verification key は `cad6c28700b34d60159ee1ab40c91878d0436aa677d6a97741dacea5803b0485` です。
 
 ```text
-circuit.wasm              16fdc8b9caed938299b530a6ebc9885dfdf49abe3c2d73d5cbb9ed1531fb79ea
-circuit.r1cs              29027acc31b3440d5a8b42df2be4e7db2ef86b543b69823b2bd5c9b896d1516e
-circuit.zkey              5b6a568c2ff858df76d6b09c4dd3eb8779a2ebf121f02d42ffc400ed9e207ac9
-verification_key.json     cad6c28700b34d60159ee1ab40c91878d0436aa677d6a97741dacea5803b0485
-manifest.json             538900e955f6eda641fa0dc801b2559b8edb9b5bab106c8ff62a7f166e3438e5
+circuit.wasm              8997ccc90e7804613499ea89d71ac5d4b5f24ba17ad27131e8bede56112f4b29
+circuit.r1cs              7fde21c78b0ad9ea61de29ab4f9d88b992d49762b80e8718c946ccdf8817be70
+circuit.zkey              9c7cb878ff4f5ccbedef828d9ae4a10277a816c41b7d54d580652e8c1c07af1e
+verification_key.json     b8242de2d49d00093709760c497c241e73429e35ceec4541800435ef7778e21f
+manifest.json             94daf00e3ae4363449ca6b105b427f262aaef74120967339e431e7ae2b4f89bf
 ```
 
-CI（`.github/workflows/ci.yml`）は Node.js 22 で `npm ci`、コミット済みツリーに対する `npm run keys:check`、`npm run build`、正常系、異常系、改ざん検知、ML-DSA、`npm run integrity` を実行します。`keys:check` はビルド前なので、上のハッシュとの一致を見ます。ビルド後の integrity は、そのジョブが作り直した成果物の自己一致です。上の zkey ハッシュと、ビルド後の zkey ハッシュが一致することは成功条件ではありません。
+CI（`.github/workflows/ci.yml`）は Node.js 22 で `npm ci`、`npm run keys:check`、`npm run sepolia:test`、正常系、異常系、改ざん検知、ML-DSA、`npm run integrity`、世代分離、local-tee、`npm run test:mini-0.2.0`、`npm run test:frozencore` を実行します。`npm run build` は呼びません。
 
-`.github/workflows/crypto-security.yml` は build せず、上のコミット済みハッシュに対して `keys:check`、integrity、正常系、異常系、改ざん、ML-DSA、`npm run sepolia:test` を実行します。Sepolia へのデプロイはしません。`.github/workflows/codeql.yml` は JavaScript / TypeScript と GitHub Actions の一般的な検査です。CodeQL の成功は、Groth16、成果物完全性、ML-DSA-87 の成功を意味しません。層の対応は [SECURITY.md](SECURITY.md) にあります。
+`.github/workflows/crypto-security.yml` は build しません。チェックアウトした成果物に対して `keys:check`、integrity、正常系、異常系、改ざん、ML-DSA、世代分離、local-tee、frozencore、`npm run sepolia:test`、依存関係 audit を実行します。Sepolia へのデプロイはしません。これらの追加テストは、そのソースがチェックアウトされたコミットに含まれているときにだけ実行できます。`.github/workflows/codeql.yml` は JavaScript / TypeScript と GitHub Actions の一般的な検査です。CodeQL の成功は、Groth16、成果物完全性、ML-DSA-87 の成功を意味しません。層の対応は [SECURITY.md](SECURITY.md) にあります。
+
+ローカルの release gate は `scripts/release.ps1` です。Windows PowerShell 5.1 と PowerShell 7 から、リポジトリ直下で次を実行します。
+
+```powershell
+.\scripts\release.ps1 -DryRun
+.\scripts\release.ps1
+```
+
+`-DryRun` は `keys:check`、integrity、テスト、Sepolia のローカルテスト、`git diff --check`、成果物 SHA-256 の前後比較、stage 候補の表示までを行い、commit と push はしません。通常実行は検査のあと、許可したファイルだけを個別に stage し、commit 前と push 前に確認を求めます。`npm run build`、Sepolia へのデプロイ、force push は使いません。GitHub Actions はこの script を呼びません。自動 stage の対象は CodeQL / crypto-security の workflow、`scripts/security-observability.js`、`SECURITY.md`、`README.md`、`docs/` のうち、実際に変わっているファイルです。回路、zkey、verification key、baseline、Sepolia deployment、`package.json`、`package-lock.json` に変更があると中止します。
 
 ## 16. License
 
@@ -371,7 +426,7 @@ verifyProof()
 true / false
 ```
 
-`experimental/sepolia/scripts/export-verifier.js` は、`circuit/mini.zkey` から書き出した検証鍵が `keys/verification_key.json` と一致することを確認したあと、snarkjs の Groth16 Solidity テンプレートにその検証鍵を渡して `experimental/sepolia/contracts/Groth16Verifier.sol` を生成します。public input は 1 個なので、生成された `verifyProof` の公開信号は `uint[1]` です。検証は Ethereum の BN254 プリコンパイル（アドレス 6、7、8）を使うテンプレートの形です。
+デプロイ済みの `Groth16Verifier.sol` は 0.1.0 の検証鍵を埋め込んだままです。公式の `experimental/sepolia/scripts/export-verifier.js` を実行すると、この 1 信号ファイルを書き出します。5 信号の `Groth16VerifierV2.sol` を書き、デプロイ済みファイルを変えないのは `experimental/mini-0.2.0/sepolia/scripts/export-verifier.js` です。`AegisProofMiniStatement` はその v2 verifier を使い、`uint[5]` の公開信号を受けます。順序は commitment、nullifier、contextHash、policyId、epoch です。ネットワークへの新規デプロイは行っていません。
 
 `AegisProofMiniSepolia` はその verifier を継承し、`publicSignalCount()` が 1 を返します。証明の座標は、手で並べ替えず、snarkjs の `groth16.exportSolidityCallData` の出力を使います。
 
@@ -467,7 +522,7 @@ https://sepolia.etherscan.io/tx/0xee001b0be2d475973fc5292e3b2dab5df82d361eefc987
 ## Limitations
 
 - コントラクトに埋め込まれている検証鍵は、このリポジトリの開発用単一貢献者セレモニーの鍵です。オンチェーン検証はその鍵を本番のマルチパーティセレモニーへ引き上げません。
-- 公開信号は `commitment` の 1 個だけです。
+- デプロイ済みコントラクトの公開信号は、記録当時の `commitment` 1 個のままです。5 信号の検査はローカルの `AegisProofMiniStatement` です。
 - チェーンは証明の数学的な検査だけを行います。SHA-256 の完全性検査と ML-DSA-87 の真正性検査は、今までどおりローカルの別レイヤーです。
 - `verifyProof` の view call で成否は分かります。`verifyAndRecord` は、その結果をトランザクションとして残すための最小の関数です。
 - この節のアドレスとトランザクションは、上記の 1 回のデプロイと 1 回の検証トランザクションの記録です。

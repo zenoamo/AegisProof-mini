@@ -53,7 +53,7 @@ https://github.com/zenoamo/AegisProof-mini/security/advisories/new
 検証が成功したときの意味は、「同梱の verification key の下で、公開 `commitment` に対する Groth16 証明が受理された」です。
 
 - 証明方式は Groth16、曲線は BN254 です。snarkjs のファイル上の曲線名は `bn128`、mini の manifest と証明封筒の曲線名は `bn254` です。この実装では同じ曲線を指します。
-- 回路の制約は `commitment === Poseidon(secret)` です。`Poseidon` は circomlib の `Poseidon(1)` です。
+- リポジトリ直下の `circuit/main.circom` の制約は `commitment === Poseidon(secret)` です。公開信号は `commitment` 1 個です。5 信号の制約は `experimental/mini-0.2.0/circuit/main.circom` にあり、ルートの検証器はその鍵を使いません。`Poseidon` は circomlib の実装です。
 - Groth16 の健全性は、証明鍵のトラップドアが偽造者に渡っていないことに依存します。このリポジトリのセレモニーはその前提を本番水準では満たしません。
 
 ## Dev ceremony
@@ -139,7 +139,7 @@ proof validity
 
 `.github/workflows/codeql.yml` は JavaScript / TypeScript と GitHub Actions workflow を、CodeQL の `security-extended` で見ます。SARIF の `security-severity` が 7.0 以上（High または Critical）の結果で失敗します。回路のコンパイル、zkey、verification key の生成はしません。
 
-`.github/workflows/crypto-security.yml` は、コミット済みツリーに対して既存の `npm run keys:check`、`npm run integrity`、`test:positive`、`test:negative`、`test:tamper`、`test:authenticity`、`npm run sepolia:test` を実行します。`keys:check` が protocol、曲線、`nPublic`、制約数 415、r1cs から zkey、zkey から verification key、manifest、baseline の対応を見ます。同じ判定を workflow 用に複製していません。この workflow は `npm run build` を実行せず、Sepolia へのデプロイや状態を変えるトランザクションも実行しません。`SEPOLIA_PRIVATE_KEY` は使いません。
+`.github/workflows/crypto-security.yml` は、チェックアウトしたツリーに対して既存の `npm run keys:check`、`npm run integrity`、`test:positive`、`test:negative`、`test:tamper`、`test:authenticity`、世代分離、local-tee、frozencore、`npm run sepolia:test` を実行します。build はしません。`keys:check` が protocol、曲線、`nPublic`、制約数 415、r1cs から zkey、zkey から verification key、manifest、baseline の対応を見ます。5 信号・制約数 1767 は `experimental/mini-0.2.0` の成果物です。同じ判定を workflow 用に複製していません。この workflow は `npm run build` を実行せず、Sepolia へのデプロイや状態を変えるトランザクションも実行しません。`SEPOLIA_PRIVATE_KEY` は使いません。
 
 秘密の実値、PEM 秘密鍵、弱い暗号 API（MD5、SHA-1、DES、3DES、RC4、ECB、暗号パス上の `Math.random()`）は `scripts/security-observability.js` が見ます。識別子、空の `.env.example`、公開アドレス、deployment の transaction hash、プレースホルダ、テスト用の明示的な非秘密値は失敗条件にしていません。GitHub の secret scanning の代わりにはしません。
 

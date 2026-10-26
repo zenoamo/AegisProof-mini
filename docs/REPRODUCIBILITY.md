@@ -28,19 +28,19 @@ npm run integrity
 | Node.js | `engines` は `>=20`。CI は Node.js 22。この manifest の `toolchain.node` は `v24.18.0` |
 | circom | 回路の pragma は `2.2.2`。manifest の `circuit.circom` は `2.2.3` |
 | snarkjs | `0.7.6` |
-| circomlib | `2.0.5`（`Poseidon(1)`） |
+| circomlib | `2.0.5`（`Poseidon(1)`、`Poseidon(2)`、`Poseidon(5)`） |
 | circomlibjs | `0.1.7` |
 | Curve | BN254。snarkjs の曲線名は `bn128`。manifest の曲線名は `bn254` |
 | Proof system | Groth16 |
-| Constraints | 415 |
-| Private inputs | 1（`secret`） |
-| Public inputs | 1（`commitment`） |
-| Powers of tau | 9 |
+| Constraints | 直下の manifest は 415。`experimental/mini-0.2.0` は 1767 |
+| Private inputs | 直下は 1（`secret`）。0.2.0 は 2（`secret`、`context`） |
+| Public inputs | 直下は 1（`commitment`）。0.2.0 は 5（`commitment`、`nullifier`、`contextHash`、`policyId`、`epoch`） |
+| Powers of tau | 11 |
 | Contributors | 1 |
 | `ceremony.production` | `false` |
 | `toxicWastePersisted` | `false` |
-| Public signal schema | `aegisproof-mini-public-signals-v1` |
-| Version | `aegisproof-mini-0.1.0` |
+| Public signal schema | 直下は `aegisproof-mini-public-signals-v1`。0.2.0 は `aegisproof-mini-public-signals-v2` |
+| Version | 直下は `aegisproof-mini-0.1.0`。0.2.0 は `aegisproof-mini-0.2.0` |
 
 PATH に circom `2.2.3` が無いとき、`scripts/build.js` は `tools/circom-2.2.3-sha256.json` にピンした公式バイナリを取得し、SHA-256 を確認してから使います。
 
@@ -57,14 +57,14 @@ PATH に circom `2.2.3` が無いとき、`scripts/build.js` は `tools/circom-2
 
 `artifacts/manifest.sha256` は `manifest.json` のバイト列の SHA-256 です。
 
-この作業ツリーで manifest と一致している値です。
+次の SHA-256 は `experimental/mini-0.2.0/artifacts/` の 5 信号成果物です。直下の `artifacts/` はコミット `90df4d2` の 1 信号のままです。この値へ直下の成果物を合わせる再ビルドはしません。
 
 ```text
-circuit.wasm              16fdc8b9caed938299b530a6ebc9885dfdf49abe3c2d73d5cbb9ed1531fb79ea
-circuit.r1cs              29027acc31b3440d5a8b42df2be4e7db2ef86b543b69823b2bd5c9b896d1516e
-circuit.zkey              5b6a568c2ff858df76d6b09c4dd3eb8779a2ebf121f02d42ffc400ed9e207ac9
-verification_key.json     cad6c28700b34d60159ee1ab40c91878d0436aa677d6a97741dacea5803b0485
-manifest.json             538900e955f6eda641fa0dc801b2559b8edb9b5bab106c8ff62a7f166e3438e5
+circuit.wasm              8997ccc90e7804613499ea89d71ac5d4b5f24ba17ad27131e8bede56112f4b29
+circuit.r1cs              7fde21c78b0ad9ea61de29ab4f9d88b992d49762b80e8718c946ccdf8817be70
+circuit.zkey              9c7cb878ff4f5ccbedef828d9ae4a10277a816c41b7d54d580652e8c1c07af1e
+verification_key.json     b8242de2d49d00093709760c497c241e73429e35ceec4541800435ef7778e21f
+manifest.json             94daf00e3ae4363449ca6b105b427f262aaef74120967339e431e7ae2b4f89bf
 ```
 
 `npm run integrity` がこの対応を検査します。不一致のとき CLI は終了コード 2 で止まります。
@@ -81,9 +81,9 @@ manifest.json             538900e955f6eda641fa0dc801b2559b8edb9b5bab106c8ff62a7f
 | `npm run build` | コンパイルと新しい開発用セレモニー。baseline は更新しない |
 | `npm run sepolia:test` | ローカル Solidity verifier。deployment があるときは Sepolia 上のコントラクトとの bool の一致も見る |
 
-`.github/workflows/ci.yml` は Ubuntu の Node.js 22 で、`npm ci`、コミット済みツリーに対する `npm run keys:check`、そのあとの `npm run build`、正常系、異常系、改ざん、ML-DSA、`npm run integrity` を実行します。build のあとの integrity と `test:positive` は、そのジョブが作り直した成果物の自己一致です。`test:positive` の鍵テストは zkey から書き出した verification key と、その時点の manifest を比べ、baseline の `manifest.sha256` とは比べません。checkout 直後の `keys:check` が、コミットされた baseline との回帰です。
+`.github/workflows/ci.yml` は Ubuntu の Node.js 22 で、`npm ci`、`npm run keys:check`、`npm run sepolia:test`、正常系、異常系、改ざん、ML-DSA、`npm run integrity`、世代分離、local-tee、`npm run test:mini-0.2.0`、`npm run test:frozencore` を実行します。`npm run build` は呼びません。`keys:check` は直下の 1 信号成果物と baseline を見ます。
 
-`.github/workflows/crypto-security.yml` は build しません。コミット済みの wasm、r1cs、zkey、verification key、manifest、baseline に対して `keys:check`、integrity、正常系、異常系、改ざん、ML-DSA、`npm run sepolia:test` を実行します。CodeQL は `.github/workflows/codeql.yml` で、暗号成果物の再生成とは別です。
+`.github/workflows/crypto-security.yml` は build しません。チェックアウトした wasm、r1cs、zkey、verification key、manifest、baseline に対して `keys:check`、integrity、正常系、異常系、改ざん、ML-DSA、世代分離、local-tee、frozencore、`npm run sepolia:test` を実行します。CodeQL は `.github/workflows/codeql.yml` で、暗号成果物の再生成とは別です。世代分離、local-tee、frozencore のソースがコミットに無いチェックアウトでは、そのステップは失敗します。
 
 ## Dev ceremony
 
@@ -96,4 +96,4 @@ zkey と verification key が毎回同じバイト列になるとは限りませ
 - 回路コンパイル。同じ circom `2.2.3` と `circuit/main.circom` に対する wasm と r1cs。コミットされたハッシュは `npm run integrity` が検査する
 - 成果物の内部整合。そのビルドが書いたファイルと、そのビルドが書いた manifest
 - 証明検証。その verification key の下で Groth16 が受理されるか
-- 期待するメタデータ。制約数 415、公開入力 1、秘密入力 1、Groth16、BN254 / snarkjs の `bn128`、`nPublic` 1。`npm run keys:check` が baseline と比べる
+- 期待するメタデータ。直下は制約数 415、公開入力 1、秘密入力 1、Groth16、BN254 / snarkjs の `bn128`、`nPublic` 1。`npm run keys:check` が baseline と比べる。0.2.0 は制約数 1767、公開入力 5、秘密入力 2、`nPublic` 5 で、対応する ptau は無く `zkey verify r1cs` は未完了

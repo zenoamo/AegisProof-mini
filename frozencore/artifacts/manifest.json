@@ -1,0 +1,74 @@
+{
+  "version": "frozencore-experimental-0.1.0",
+  "schema": "frozencore-public-signals-v1",
+  "production": false,
+  "proofSystem": {
+    "protocol": "groth16",
+    "curve": "bn254",
+    "snarkjsCurveName": "bn128"
+  },
+  "circuit": {
+    "source": "frozencore/circuit/statement.circom",
+    "constraints": 13081,
+    "privateInputs": 13,
+    "publicInputs": 30,
+    "publicSignals": [
+      "commitment",
+      "nullifier",
+      "contextHash",
+      "subjectCommitment",
+      "inputCommitment",
+      "policyId",
+      "policyVersion",
+      "authorizationCommitment",
+      "issuerId",
+      "audienceId",
+      "epoch",
+      "issuedAt",
+      "expiresAt",
+      "revocationRoot",
+      "stateRoot",
+      "programHash",
+      "programVersion",
+      "inputRoot",
+      "outputCommitment",
+      "executionId",
+      "zkvmProgramId",
+      "zkvmProofCommitment",
+      "teeMeasurement",
+      "attestationCommitment",
+      "runtimeConfigHash",
+      "verifierId",
+      "protocolVersion",
+      "chainId",
+      "contractAddressField",
+      "domainSeparator"
+    ]
+  },
+  "ceremony": {
+    "phase1Power": 14,
+    "contributors": 1,
+    "production": false,
+    "toxicWastePersisted": false,
+    "ptauRetained": true,
+    "zkeyVerifiedFromR1cs": true,
+    "phase1Name": "frozencore-dev-phase1",
+    "phase2Name": "frozencore-dev-phase2",
+    "entropy": "public labels mixed with OS CSPRNG; the entropy values are not a transcript",
+    "note": "Single-contributor development setup. Not a multi-party ceremony. Toxic-waste destruction is not established."
+  },
+  "toolchain": {
+    "node": "v24.18.0",
+    "circom": "circom compiler 2.2.3",
+    "snarkjs": "0.7.6",
+    "circomlib": "2.0.5",
+    "circomlibjs": "0.1.7"
+  },
+  "artifacts": {
+    "statement.wasm": "aa3adc3b8dfcf53436d4f19baf1c9944cf060c2c2d5d76f9e8115c23bf2310f3",
+    "statement.r1cs": "05ecb388b4f44edfe9393aeb4f7d4ca9ed896a3a133396c8078747b31d963e96",
+    "statement.zkey": "4f7fa03a2e67c350f5d8dbc87d69322d8c7ffb7f75157197d2026030eab15a8a",
+    "statement.vk": "5e713525ff4ab0d487648d629cf0087093613cc2bcb38024f73f496b614666cb",
+    "statement.ptau": "1e0defe426d65a56e32df4dd46444ed7031865db692f500f83cdf4356b1734c2"
+  }
+}

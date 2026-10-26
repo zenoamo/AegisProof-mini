@@ -1,10 +1,10 @@
 # Architecture
 
-AegisProof-mini は、一つの公開値に対する Groth16 証明と、その証明に使う回路成果物の検査を、別の層として持っています。本番システムではなく、AegisProof v2 の Frozen Core でもありません。
+AegisProof-mini は、Groth16 の証明と、その証明に使う回路成果物の検査を別の層として持っています。本番システムではなく、AegisProof v2 の Frozen Core でもありません。このリポジトリ内で FrozenCore と呼ぶものは、mini 0.2.0 と実験用 30 信号をスキーマごとに分ける証明基盤です。入口は `src/foundation.js` です。
 
 ## 証明の経路
 
-回路は `circuit/main.circom` です。private input は `secret`、public input は `commitment`、制約は `commitment === Poseidon(secret)` です。`Poseidon` は circomlib の `Poseidon(1)` です。manifest に記録された制約数は 415 です。
+リポジトリ直下の回路は `circuit/main.circom` です。private input は `secret`、public input は `commitment` です。制約は `commitment === Poseidon(secret)` で、manifest の制約数は 415 です。5 信号の回路は `experimental/mini-0.2.0/circuit/main.circom` で、制約数は 1767 です。ルートの検証器はその鍵を使いません。
 
 ```text
 Input
@@ -22,7 +22,7 @@ Verifier
 
 `src/prover/prove.js` は、完全性検査のあと `snarkjs.groth16.fullProve` で証明を作ります。witness ファイルは書きません。`secret` は証明封筒のフィールドにしません。
 
-`src/verifier/verify.js` は、スキーマと完全性検査のあと `snarkjs.groth16.verify` を呼びます。`publicSignals` は長さ 1 の canonical な体元素文字列です。スキーマ名は `aegisproof-mini-public-signals-v1` です。30 個の公開信号は拒否します。
+`src/verifier/verify.js` は、スキーマと完全性検査のあと `snarkjs.groth16.verify` を呼びます。`publicSignals` は長さ 1 の canonical な体元素文字列です。スキーマ名は `aegisproof-mini-public-signals-v1` です。5 信号、空、30 個の公開信号は拒否します。
 
 曲線は BN254 です。snarkjs が証明オブジェクトと verification key に書く名前は `bn128`、manifest と証明封筒が書く名前は `bn254` です。
 
@@ -78,24 +78,27 @@ Solidity Groth16 verifier
 Ethereum Sepolia
 ```
 
-`experimental/sepolia/scripts/export-verifier.js` は、`circuit/mini.zkey` から書き出した検証鍵が `keys/verification_key.json` と一致することを確認し、snarkjs の Groth16 Solidity テンプレートで `Groth16Verifier.sol` を生成します。公開信号は 1 個なので、`verifyProof` の引数は `uint[1]` です。
+`experimental/sepolia/scripts/export-verifier.js` は、直下の `circuit/mini.zkey` から書き出した検証鍵が `keys/verification_key.json` と一致し、`nPublic` が 1 であることを確認したあと、`Groth16Verifier.sol` を書き出します。実行するとデプロイ済みファイルを置き換えます。5 信号の書き出しは `experimental/mini-0.2.0/sepolia/scripts/export-verifier.js` で、`Groth16VerifierV2.sol` を書き、`Groth16Verifier.sol` のバイト列が変わっていれば停止します。
 
-`AegisProofMiniSepolia` はその verifier を継承します。`publicSignalCount()` は 1 です。証明座標は `snarkjs.groth16.exportSolidityCallData` の出力を使います。
+デプロイ記録の `AegisProofMiniSepolia` は、変更していない `Groth16Verifier.sol` を継承します。`publicSignalCount()` は 1 です。`experimental/sepolia/deployments/sepolia.json` の `publicSignalCount` も 1 です。この記録はチェーンを再照会した結果ではありません。
 
-`verifyProof` は view です。結果をトランザクションとして残す関数が `verifyAndRecord` です。生成 verifier は assembly の `return` で呼び出し全体を終えるため、`verifyAndRecord` は `staticcall` 経由で `verifyProof` を呼び、返った bool と commitment を保存します。
+未追跡の `AegisProofMiniStatement` は `Groth16VerifierV2` を継承し、公開順 commitment、nullifier、contextHash、policyId、epoch を受けます。`verifyAndConsume` は所有者の epoch と許可された policyId を要求し、使用済み nullifier を記録します。`msg.sender` は証明の公開信号に入りません。無効な証明では nullifier を記録しません。この契約の公開ネットワークへのデプロイはしていません。
 
-チェーンへ送るのは証明と公開 `commitment` です。`secret` はオンチェーンに送りません。
+`AegisProofMiniSepolia.verifyProof` は view です。`verifyAndRecord` は `staticcall` 経由で `verifyProof` を呼び、返った bool と commitment を保存します。証明が false のときも、その bool と commitment と送信者を上書きします。replay nonce はありません。生成 verifier は assembly の `return` で呼び出し全体を終えるため、直接呼ぶと後続の記録が走りません。
+
+チェーンへ送るのは証明と公開信号です。`secret` はオンチェーンに送りません。1 信号のデプロイ済み契約が受け取る公開信号は `commitment` だけです。
 
 この層は extension / experimental layer です。Core の回路、prover、verifier、integrity、authenticity、既存の zkey と verification key を置き換えません。埋め込まれた検証鍵は、開発用の単一貢献者セレモニーの鍵です。
 
 ## AegisProof v2 との境界
 
-mini の公開信号は `commitment` の 1 個です。AegisProof v2 の 30 フィールド claims structure は移植していません。その形の入力は検証で拒否します。v2 の `production.zkey`、WASM、R1CS はこのツリーに無く、使いません。
+直下の mini の公開信号は 1 個です。5 信号は `experimental/mini-0.2.0` にあり、ルートの検証器は拒否します。AegisProof v2 の 30 フィールド claims structure は移植していません。その形の入力は mini の検証器が拒否します。v2 の `production.zkey`、WASM、R1CS はこのツリーに無く、使いません。実験用の 30 信号は別スキーマ `frozencore-public-signals-v1` で、mini の証明を含みません。仕様は [frozencore/SPEC.md](../frozencore/SPEC.md) です。
 
 ## モジュール
 
 | 経路 | モジュール |
 | --- | --- |
+| 証明基盤 | `src/foundation.js` |
 | 証明生成 | `src/prover/prove.js` |
 | 検証 | `src/verifier/verify.js` |
 | 完全性 | `src/integrity/check.js` |

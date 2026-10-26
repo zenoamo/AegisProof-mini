@@ -1,0 +1,67 @@
+{
+  "version": "frozencore-guest-experimental-0.1.0",
+  "schema": "frozencore-guest-journal-v1",
+  "production": false,
+  "proofSystem": {
+    "protocol": "groth16",
+    "curve": "bn254",
+    "snarkjsCurveName": "bn128"
+  },
+  "circuit": {
+    "source": "frozencore/circuit/guest.circom",
+    "constraints": 3942,
+    "privateInputs": 3,
+    "publicInputs": 4,
+    "publicSignals": [
+      "zkvmProgramId",
+      "inputRoot",
+      "outputCommitment",
+      "executionId"
+    ],
+    "fixedProgram": [
+      [
+        1,
+        0
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        0
+      ]
+    ]
+  },
+  "ceremony": {
+    "phase1Power": 12,
+    "contributors": 1,
+    "production": false,
+    "toxicWastePersisted": false,
+    "ptauRetained": true,
+    "zkeyVerifiedFromR1cs": true,
+    "phase1Name": "frozencore-guest-dev-phase1",
+    "phase2Name": "frozencore-guest-dev-phase2",
+    "procedure": "node frozencore/scripts/build-guest.js",
+    "entropy": "public labels mixed with OS CSPRNG; re-running the script does not reproduce the same zkey bytes",
+    "note": "Single-contributor development setup for the fixed guest circuit. Not a multi-party ceremony. Not production. Toxic-waste destruction is not established. Statement keys were not used."
+  },
+  "toolchain": {
+    "node": "v24.18.0",
+    "circom": "circom compiler 2.2.3",
+    "snarkjs": "0.7.6",
+    "circomlib": "2.0.5",
+    "circomlibjs": "0.1.7"
+  },
+  "artifacts": {
+    "guest.wasm": "a013f53fc0492f3610ed46817c6199f3e35ed2993736a58934fa3d80066bc0ab",
+    "guest.r1cs": "240ce1091d21db62d345e33659fdca2e109091be41224315a648190e2d183e0c",
+    "guest.zkey": "e7c09b791e24c8cdc31959ae6bb45111d4e1c35d827e230597d6795c0f0c9598",
+    "guest.vk": "76787928ea4a7b88b49b85f04f51c77fb07f66c893775ec71d40c6538233d955",
+    "guest.ptau": "419d5bc5aa03f2437b251de71bdb4f48137f04ac0af05995bc376e91d948b61c"
+  }
+}

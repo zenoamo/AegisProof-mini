@@ -79,6 +79,11 @@ function placeWasm() {
 }
 
 async function main() {
+  if (process.env.AEGIS_MINI_010_REBUILD !== "1") {
+    throw new Error(
+      "保存済みの 0.1.0 成果物を上書きする build は停止しました。circuit/mini.zkey と keys/verification_key.json は再生成しません。",
+    );
+  }
   if (path.basename(ARTIFACTS["circuit.zkey"]) !== "mini.zkey") {
     throw new Error("zkey の出力名は mini.zkey です");
   }

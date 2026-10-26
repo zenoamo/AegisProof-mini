@@ -1,0 +1,74 @@
+{
+  "version": "aegisproof-mini-0.2.0",
+  "proofSystem": {
+    "protocol": "groth16",
+    "curve": "bn254",
+    "snarkjsCurveName": "bn128"
+  },
+  "circuit": {
+    "name": "statement",
+    "hash": "poseidon",
+    "publicSignals": [
+      "commitment",
+      "nullifier",
+      "contextHash",
+      "policyId",
+      "epoch"
+    ],
+    "constraints": 1767,
+    "privateInputs": 2,
+    "publicInputs": 5,
+    "circom": "2.2.3"
+  },
+  "ceremony": {
+    "phase1Power": 11,
+    "contributors": 1,
+    "production": false,
+    "toxicWastePersisted": false,
+    "note": "Development-only single-party Groth16 setup. Not AegisProof v2 production.zkey."
+  },
+  "toolchain": {
+    "node": "v24.18.0",
+    "snarkjs": "0.7.6",
+    "circomlib": "2.0.5",
+    "circomlibjs": "0.1.7"
+  },
+  "artifacts": {
+    "circuit.wasm": "8997ccc90e7804613499ea89d71ac5d4b5f24ba17ad27131e8bede56112f4b29",
+    "circuit.r1cs": "7fde21c78b0ad9ea61de29ab4f9d88b992d49762b80e8718c946ccdf8817be70",
+    "circuit.zkey": "9c7cb878ff4f5ccbedef828d9ae4a10277a816c41b7d54d580652e8c1c07af1e",
+    "verification_key.json": "b8242de2d49d00093709760c497c241e73429e35ceec4541800435ef7778e21f"
+  },
+  "files": {
+    "circuit.wasm": {
+      "path": "circuit/main.wasm",
+      "sha256": "8997ccc90e7804613499ea89d71ac5d4b5f24ba17ad27131e8bede56112f4b29",
+      "bytes": 2658039
+    },
+    "circuit.r1cs": {
+      "path": "circuit/main.r1cs",
+      "sha256": "7fde21c78b0ad9ea61de29ab4f9d88b992d49762b80e8718c946ccdf8817be70",
+      "bytes": 243824
+    },
+    "circuit.zkey": {
+      "path": "circuit/mini.zkey",
+      "sha256": "9c7cb878ff4f5ccbedef828d9ae4a10277a816c41b7d54d580652e8c1c07af1e",
+      "bytes": 768568
+    },
+    "verification_key.json": {
+      "path": "keys/verification_key.json",
+      "sha256": "b8242de2d49d00093709760c497c241e73429e35ceec4541800435ef7778e21f",
+      "bytes": 3935
+    }
+  },
+  "binding": {
+    "circuitSource": "circuit/main.circom",
+    "r1cs": "circuit/main.r1cs",
+    "zkey": "circuit/mini.zkey",
+    "verificationKey": "keys/verification_key.json",
+    "protocol": "groth16",
+    "curve": "bn254",
+    "snarkjsCurveName": "bn128",
+    "nPublic": 5
+  }
+}

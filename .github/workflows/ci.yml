@@ -29,8 +29,9 @@ jobs:
       - name: committed key binding
         run: npm run keys:check
 
-      - name: build
-        run: npm run build
+      # Do not run npm run build. It would replace the committed 0.1.0 zkey and verification key.
+      - name: Sepolia local tests
+        run: npm run sepolia:test
 
       - name: test
         run: |
@@ -47,3 +48,10 @@ jobs:
 
       - name: artifact integrity test
         run: npm run integrity
+
+      - name: generations, local boundary, and frozencore
+        run: |
+          node --test --test-force-exit "tests/foundation/**/*.test.js" "tests/protocol/**/*.test.js" "tests/protection/**/*.test.js"
+          npm run test:local-tee
+          npm run test:mini-0.2.0
+          npm run test:frozencore

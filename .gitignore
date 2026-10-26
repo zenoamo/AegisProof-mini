@@ -17,3 +17,5 @@ coverage/
 !.env.example
 experimental/sepolia/cache/
 experimental/sepolia/hh-artifacts/
+experimental/mini-0.2.0/hh-cache/
+experimental/mini-0.2.0/hh-artifacts/

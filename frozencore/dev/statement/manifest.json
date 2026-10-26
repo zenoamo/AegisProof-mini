@@ -1,0 +1,77 @@
+{
+  "version": "frozencore-experimental-0.1.0",
+  "schema": "frozencore-public-signals-v1",
+  "production": false,
+  "proofSystem": {
+    "protocol": "groth16",
+    "curve": "bn254",
+    "snarkjsCurveName": "bn128"
+  },
+  "circuit": {
+    "source": "frozencore/circuit/statement.circom",
+    "constraints": 13082,
+    "privateInputs": 13,
+    "publicInputs": 30,
+    "publicSignals": [
+      "commitment",
+      "nullifier",
+      "contextHash",
+      "subjectCommitment",
+      "inputCommitment",
+      "policyId",
+      "policyVersion",
+      "authorizationCommitment",
+      "issuerId",
+      "audienceId",
+      "epoch",
+      "issuedAt",
+      "expiresAt",
+      "revocationRoot",
+      "stateRoot",
+      "programHash",
+      "programVersion",
+      "inputRoot",
+      "outputCommitment",
+      "executionId",
+      "zkvmProgramId",
+      "zkvmProofCommitment",
+      "teeMeasurement",
+      "attestationCommitment",
+      "runtimeConfigHash",
+      "verifierId",
+      "protocolVersion",
+      "chainId",
+      "contractAddressField",
+      "domainSeparator"
+    ],
+    "programVersionPinned": true
+  },
+  "ceremony": {
+    "phase1Power": 14,
+    "contributors": 1,
+    "production": false,
+    "toxicWastePersisted": false,
+    "ptauRetained": true,
+    "zkeyVerifiedFromR1cs": true,
+    "phase1Name": "frozencore-statement-v1-dev-phase1",
+    "phase2Name": "frozencore-statement-v1-dev-phase2",
+    "procedure": "node frozencore/scripts/build-statement-dev.js",
+    "entropy": "public labels mixed with OS CSPRNG; re-running the script does not reproduce the same zkey bytes",
+    "note": "Single-contributor development setup for programVersion === 1. Not production. Does not replace frozencore/artifacts/statement.zkey."
+  },
+  "toolchain": {
+    "node": "v24.18.0",
+    "circom": "circom compiler 2.2.3",
+    "snarkjs": "0.7.6",
+    "circomlib": "2.0.5",
+    "circomlibjs": "0.1.7"
+  },
+  "artifacts": {
+    "statement.wasm": "db13a4dd120b06c79fe6742940443346c223953864e41e5e906a2540f58fe00d",
+    "statement.r1cs": "27e3aa5fa8df6f3a408d5cbb4c24189601887c8b9d59a88093d572d7ed7a3728",
+    "statement.zkey": "238119f4dcd4c0284715039081fd73d2604c273d32598ed326bbf97b61536abf",
+    "statement.vk": "8f1aaa10481eb0979e93aca0f8a630068ab9eeedfde8759d9ebfa0a2ea4b5973",
+    "statement.ptau": "45c1dd927e4d4c88887a34e10ba3ab4302700cb13fff179467c2b003eae41ecf"
+  },
+  "legacyStatementKeyRejected": true
+}

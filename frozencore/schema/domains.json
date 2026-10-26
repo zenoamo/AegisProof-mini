@@ -1,0 +1,30 @@
+{
+  "protocol": "frozencore-experimental-0.1.0",
+  "production": false,
+  "scalarField": "21888242871839275222246405745257275088548364400416034343698204186575808495617",
+  "domains": {
+    "COMMITMENT": 16,
+    "SUBJECT": 17,
+    "CONTEXT": 18,
+    "INPUT": 19,
+    "INPUT_ROOT": 20,
+    "AUTH": 21,
+    "OUTPUT": 22,
+    "PROGRAM": 23,
+    "NULLIFIER": 24,
+    "SEPARATOR": 25,
+    "REV_LEAF": 26,
+    "STATE_LEAF": 27,
+    "MERKLE": 28,
+    "RUNTIME": 29,
+    "ATTEST": 30,
+    "ZKVM_BIND": 31,
+    "ZKVM_PROGRAM": 33
+  },
+  "protocolVersion": 1,
+  "guestOpcodes": {
+    "LOAD_INPUT": 1,
+    "ADD_IMM": 2,
+    "HALT": 3
+  }
+}

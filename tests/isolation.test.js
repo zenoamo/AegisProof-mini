@@ -23,4 +23,6 @@ test("prover, verifier, and integrity stay separated", () => {
   assert.equal(prover.includes("return true;"), false);
   assert.equal(verifier.includes("return true;"), false);
   assert.equal(source("src/authenticity/mldsa.js").includes("prover/"), false);
+  assert.equal(verifier.includes("mldsa"), false);
+  assert.equal(verifier.includes("authenticity/"), false);
 });

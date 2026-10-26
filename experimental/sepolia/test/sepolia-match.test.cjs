@@ -3,7 +3,8 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 const hre = require("hardhat");
 const { ethers } = hre;
-const { createSample } = require("../scripts/sample-proof.cjs");
+const { loadFrozenV1Proof } = require("../scripts/frozen-v1-proof.cjs");
+const { sepoliaLiveComparisonEnabled } = require("../scripts/live-gate.cjs");
 
 const deploymentPath = path.join(__dirname, "../deployments/sepolia.json");
 const abi = [
@@ -15,7 +16,7 @@ function bumpHex(value) {
   return ethers.toBeHex(BigInt(value) + 1n, 32);
 }
 
-const live = fs.existsSync(deploymentPath) && Boolean(process.env.SEPOLIA_RPC_URL);
+const live = sepoliaLiveComparisonEnabled(process.env, fs.existsSync(deploymentPath));
 
 (live ? describe : describe.skip)("deployed Sepolia verifier", function () {
   let local;
@@ -33,7 +34,7 @@ const live = fs.existsSync(deploymentPath) && Boolean(process.env.SEPOLIA_RPC_UR
       throw new Error("RPC の chain id が 11155111 ではありません");
     }
     remote = new ethers.Contract(deployment.contractAddress, abi, provider);
-    sample = await createSample();
+    sample = loadFrozenV1Proof();
     const factory = await ethers.getContractFactory("AegisProofMiniSepolia");
     local = await factory.deploy();
     await local.waitForDeployment();

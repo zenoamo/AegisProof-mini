@@ -28,12 +28,19 @@ function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function versionOf(binary) {
-  const probe = spawnSync(binary, ["--version"], { encoding: "utf8" });
+function launchProbe(binary) {
+  return spawnSync(binary, ["--version"], { encoding: "utf8" });
+}
+
+function versionFromProbe(probe) {
+  if (!probe || probe.status !== 0) return null;
   const text = `${probe.stdout || ""}\n${probe.stderr || ""}`;
   const match = text.match(/(\d+\.\d+\.\d+)/);
-  if (probe.status !== 0 || !match) return null;
-  return match[1];
+  return match ? match[1] : null;
+}
+
+function versionOf(binary) {
+  return versionFromProbe(launchProbe(binary));
 }
 
 function systemBinary() {
@@ -128,7 +135,13 @@ export async function ensureCircom() {
   const cachePath = path.join(root, "tools", "bin", spec.file);
   const bytes = await verifiedBytes(spec, cachePath);
   const executable = materializeVerified(spec.file, bytes);
-  if (versionOf(executable) !== EXPECTED_VERSION) {
+  const probe = launchProbe(executable);
+  if (probe.error || probe.status !== 0) {
+    const err = new Error("pin 済み circom を起動できません");
+    err.code = "CIRCOM_BLOCKED";
+    throw err;
+  }
+  if (versionFromProbe(probe) !== EXPECTED_VERSION) {
     throw new Error("ダウンロードした circom の版が一致しません");
   }
   return executable;

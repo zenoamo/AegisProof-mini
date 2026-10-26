@@ -1,0 +1,30 @@
+name: mini 0.2.0 experimental
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-mini-020:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: install
+        run: npm ci
+
+      - name: experimental unit tests
+        run: npm run test:mini-0.2.0
+
+      - name: experimental local contracts
+        run: npm run test:mini-0.2.0:contracts

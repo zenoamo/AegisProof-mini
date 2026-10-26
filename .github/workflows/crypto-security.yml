@@ -50,6 +50,18 @@ jobs:
       - name: ML-DSA authenticity
         run: npm run test:authenticity
 
+      - name: Generation and protocol separation
+        run: node --test --test-force-exit "tests/foundation/**/*.test.js" "tests/protocol/**/*.test.js" "tests/protection/**/*.test.js"
+
+      - name: Local process boundary
+        run: npm run test:local-tee
+
+      - name: FrozenCore development tests
+        run: npm run test:frozencore
+
+      - name: mini 0.2.0 experimental tests
+        run: npm run test:mini-0.2.0
+
       - name: Sepolia local tests
         run: npm run sepolia:test
 

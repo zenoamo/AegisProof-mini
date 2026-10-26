@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { sha256File } from "../../src/integrity/hash.js";
+import { sha256Bytes } from "../../src/integrity/hash.js";
 
 export const EVIDENCE_REL = "frozencore/evidence/audit-e2e.json";
 export const EVIDENCE_SCHEMA = "frozencore-audit-e2e-record-v1";
@@ -71,17 +71,80 @@ export function readGitCommit(root) {
   }
 }
 
+function sameFileIdentity(left, right) {
+  return left.dev === right.dev && left.ino === right.ino && left.ino !== 0;
+}
+
+function readRegularFileSafely(filePath) {
+  let fd;
+  let initial;
+
+  try {
+    initial = fs.lstatSync(filePath);
+  } catch (error) {
+    return error?.code === "ENOENT"
+      ? { status: "missing" }
+      : { status: "rejected" };
+  }
+
+  if (initial.isSymbolicLink() || !initial.isFile()) {
+    return { status: "rejected" };
+  }
+
+  try {
+    const flags = fs.constants.O_RDONLY |
+      (fs.constants.O_NOFOLLOW ?? 0);
+
+    fd = fs.openSync(filePath, flags);
+
+    const opened = fs.fstatSync(fd);
+    if (!opened.isFile() || !sameFileIdentity(initial, opened)) {
+      return { status: "rejected" };
+    }
+
+    const data = fs.readFileSync(fd);
+    const after = fs.fstatSync(fd);
+    const current = fs.lstatSync(filePath);
+
+    if (
+      current.isSymbolicLink() ||
+      !current.isFile() ||
+      !sameFileIdentity(opened, current) ||
+      !sameFileIdentity(opened, after) ||
+      opened.size !== after.size ||
+      opened.mtimeMs !== after.mtimeMs ||
+      opened.ctimeMs !== after.ctimeMs
+    ) {
+      return { status: "rejected" };
+    }
+
+    return { status: "ok", data };
+  } catch {
+    return { status: "rejected" };
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // Best-effort cleanup.
+      }
+    }
+  }
+}
+
 export function loadAuditEvidence(root) {
   const filePath = path.join(root, EVIDENCE_REL);
-  let stat;
-  try {
-    stat = fs.lstatSync(filePath);
-  } catch {
+  const result = readRegularFileSafely(filePath);
+
+  if (result.status === "missing") {
     return { present: false, rejected: false, record: null };
   }
-  if (stat.isSymbolicLink() || !stat.isFile()) return { present: false, rejected: true, record: null };
+  if (result.status !== "ok") {
+    return { present: true, rejected: true, record: null };
+  }
+
   try {
-    const record = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    const record = JSON.parse(result.data.toString("utf8"));
     if (!record || typeof record !== "object" || Array.isArray(record)) {
       return { present: true, rejected: true, record: null };
     }
@@ -94,18 +157,13 @@ export function loadAuditEvidence(root) {
 function artifactHashes(root) {
   const hashes = {};
   for (const relPath of EVIDENCE_ARTIFACTS) {
-    const full = path.join(root, relPath);
-    let stat;
-    try {
-      stat = fs.lstatSync(full);
-    } catch {
-      return null;
-    }
-    if (stat.isSymbolicLink() || !stat.isFile()) return null;
-    hashes[relPath] = sha256File(full);
+    const result = readRegularFileSafely(path.join(root, relPath));
+    if (result.status !== "ok") return null;
+    hashes[relPath] = sha256Bytes(result.data);
   }
   return hashes;
 }
+
 
 export function verifyAuditEvidence(loaded, context = {}) {
   const failures = [];

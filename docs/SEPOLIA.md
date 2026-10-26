@@ -37,7 +37,7 @@ true / false
 
 `npm run sepolia:export-verifier` は、直下の 1 信号の zkey と `keys/verification_key.json` が一致し、`nPublic` が 1 であることを確認したあと、`experimental/sepolia/contracts/Groth16Verifier.sol` を書き出します。実行するとそのファイルを置き換えます。5 信号の `Groth16VerifierV2.sol` を書くのは `experimental/mini-0.2.0/sepolia/scripts/export-verifier.js` で、`nPublic` が 5 であることを要求し、デプロイ済み `Groth16Verifier.sol` のバイト列が変わっていれば停止します。テンプレートは Ethereum の BN254 プリコンパイル（アドレス 6、7、8）を使います。デプロイ記録が指す検証器は、公開信号 1 個の `Groth16Verifier.sol` です。
 
-`AegisProofMiniSepolia` は 1 信号の `Groth16Verifier` を継承します。未追跡の `AegisProofMiniStatement` は 5 信号の `Groth16VerifierV2` を継承し、公開ネットワークへはデプロイしていません。
+`AegisProofMiniSepolia` は 1 信号の `Groth16Verifier` を継承します。`AegisProofMiniStatement` は 5 信号の `Groth16VerifierV2` を継承し、`experimental/mini-0.2.0/` と `experimental/sepolia/contracts/` にあります。公開ネットワークへはデプロイしていません。
 
 - `publicSignalCount()` は 1 を返す
 - `verifyProof` は view。読み取りの `eth_call` で成否が分かる
@@ -47,9 +47,11 @@ true / false
 
 証明の座標は、手で並べ替えず、`snarkjs.groth16.exportSolidityCallData` の出力を使います。
 
-コントラクトが検査するのは Groth16 だけです。SHA-256 の成果物完全性も、ML-DSA-87 の真正性も、チェーン上では実行しません。true は、その検証器に埋め込まれた verification key の下で証明が受理されたことです。セットアップのエントロピーが破棄されたことや、`secret` の所持者を示すものではありません。デプロイ記録のアドレスとトランザクションは `sepolia.json` の記録であり、この文書を書いた時点のチェーン再照会ではありません。
+コントラクトが検査するのは Groth16 だけです。SHA-256 の成果物完全性も、ML-DSA-87 の真正性も、チェーン上では実行しません。true は、その検証器に埋め込まれた verification key の下で証明と `commitment` が受理されたことです。`secret` の所持者を特定せず、セットアップのエントロピーが破棄されたことも示しません。デプロイ記録のアドレスとトランザクションは `sepolia.json` の記録であり、この文書を書いた時点のチェーン再照会ではありません。
 
-`AegisProofMiniSepolia` の `verifyProof` は `uint[1]` です。引数の個数が違う呼び出しは ABI で一致せず revert し、状態は変わりません。`verifyAndRecord` に replay nonce はありません。成功でも失敗でも、`lastCommitment`、`lastValid`、`lastSender` をその呼び出しの値で上書きします。`AegisProofMiniStatement.verifyAndConsume` は、証明が有効なときだけ nullifier を記録します。呼び出し元は公開信号に束縛されません。
+`verifyProof` の公開信号は `uint[1]` です。引数の個数が違う呼び出しは ABI で一致せず revert し、状態は変わりません。BN254 のスカラー体の外の commitment は、生成 verifier が false を返します。改ざんした proof や commitment も false です。これらを revert には変えていません。
+
+`verifyAndRecord` は replay nonce を持ちません。成功でも失敗でも、`lastCommitment`、`lastValid`、`lastSender` をその呼び出しの値で上書きします。同じ証明を再度送ると、再び記録します。`AegisProofMiniStatement.verifyAndConsume` は、証明が有効なときだけ nullifier を記録します。呼び出し元は公開信号に束縛されません。
 
 ## Local proof generation
 

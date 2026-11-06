@@ -36,6 +36,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@ethersproject/signing-key": "file:overrides/ethers-signing-key",
     "@noble/post-quantum": "0.7.1",
     "circomlib": "2.0.5",
     "circomlibjs": "0.1.7",
@@ -48,6 +49,7 @@
     "hardhat": "^2.29.1"
   },
   "overrides": {
+    "@ethersproject/signing-key": "$@ethersproject/signing-key",
     "underscore": "1.13.8",
     "@ethersproject/providers": {
       "ws": "8.21.0"

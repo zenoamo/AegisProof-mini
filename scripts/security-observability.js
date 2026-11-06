@@ -232,7 +232,7 @@ function audit() {
   const failProduction = printAudit("npm audit --omit=dev", production);
   const failFull = printAudit("npm audit", full);
   console.log("low and moderate advisories are recorded. npm audit fix is not run.");
-  console.log("elliptic 6.6.1 has no patched release and remains through circomlibjs, ethers 5, and Hardhat.");
+  console.log("elliptic is not installed. @ethersproject/signing-key is a local override and is not used for signing.");
   console.log("mocha diff is overridden to 8.0.4.");
   if (failProduction || failFull) process.exit(1);
   console.log("dependency audit: no high or critical advisories");

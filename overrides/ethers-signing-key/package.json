@@ -1,0 +1,8 @@
+{
+  "name": "@ethersproject/signing-key",
+  "version": "5.8.0",
+  "private": true,
+  "description": "Stand-in that does not depend on elliptic. SigningKey is not implemented.",
+  "main": "index.js",
+  "license": "GPL-3.0-or-later"
+}

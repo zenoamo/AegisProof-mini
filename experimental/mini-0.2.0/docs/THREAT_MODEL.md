@@ -26,7 +26,7 @@
 
 `codeql.yml` はアプリケーションと workflow の CodeQL `security-extended` です。High と Critical で失敗します。この結果は、上の表の Groth16、成果物完全性、ML-DSA-87、セレモニーの残リスクを閉じません。
 
-`crypto-security.yml` は、既存の `keys:check`、`integrity`、正常系、異常系、改ざん、ML-DSA、世代分離、local-tee、frozencore、Sepolia のローカルテストを、build しないチェックアウトに対して実行します。秘密の実値と、暗号実装パス上の弱い API も見ます。依存関係の `npm audit` は記録し、Critical と High のときだけ失敗します。修正版のない `elliptic` の Low は残ります。Sepolia へのデプロイと、状態を変えるトランザクションは実行しません。
+`crypto-security.yml` は、既存の `keys:check`、`integrity`、正常系、異常系、改ざん、ML-DSA、世代分離、local-tee、frozencore、Sepolia のローカルテストを、build しないチェックアウトに対して実行します。秘密の実値と、暗号実装パス上の弱い API も見ます。依存関係の `npm audit` は記録し、Critical と High のときだけ失敗します。`elliptic` は依存ツリーに入れません。Sepolia へのデプロイと、状態を変えるトランザクションは実行しません。
 
 これらの workflow は、上の表にある検査が戻っていないかを見ます。表の Residual Risk 列は、workflow を追加したあとも残ります。
 

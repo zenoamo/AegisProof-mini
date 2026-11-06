@@ -93,6 +93,7 @@ ML-DSA-87 は任意の artifact authenticity layer です。署名対象は、�
 | `hardhat` の `undici@6.29.0` | Hardhat 2.29 は undici 5。6.29 は `request`、`Pool`、`ProxyAgent`、`Client`、`Agent` を持つ 6 系の修正版。undici 7 以降には上げていない |
 | `hardhat` の `uuid@11.1.1` | 修正版は 11 系で、8 系には戻されていない。Hardhat は `v4` だけを動的 import する |
 | `solc` の `tmp@0.2.7` | solc は `tmp@0.0.33` を固定し、`fileSync({ postfix })` だけを使う |
+| `solc` の `follow-redirects@1.16.2` | ロックが `1.16.1` を指し、GHSA-mrwp-f3q8-3g9p の対象だった。solc は `https.get` だけを使い、`^1.12.1` の修正版 `1.16.2` に固定する |
 | `@sentry/node` の `cookie@0.7.2` | Hardhat の `@sentry/node@5` は `cookie@^0.4.1`。0.7 は修正が入った 0.x の最終版で、cookie 1 以降には上げていない |
 
 `ethers` 6 は `^6.17.0` です。この版が直接依存する `ws` は `8.21.0` で、8.20.1 未満の修正範囲に入ります。

@@ -61,7 +61,8 @@
       "uuid": "11.1.1"
     },
     "solc": {
-      "tmp": "0.2.7"
+      "tmp": "0.2.7",
+      "follow-redirects": "1.16.2"
     },
     "@sentry/node": {
       "cookie": "0.7.2"

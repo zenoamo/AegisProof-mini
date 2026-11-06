@@ -236,37 +236,49 @@ function dependencyTree() {
     process.exit(1);
   }
 
-  const result = spawnSync("npm", ["ls", "--all", "--json"], {
-    cwd: root,
-    encoding: "utf8",
-  });
-  let tree;
-  try {
-    tree = JSON.parse(result.stdout || "{}");
-  } catch {
-    process.stderr.write(result.stderr || result.stdout || "");
-    throw new Error("npm ls --all did not return valid JSON");
-  }
-
+  const nodeModules = path.join(root, "node_modules");
   const installed = [];
-  function visit(dependencies, prefix = "") {
-    for (const [name, item] of Object.entries(dependencies || {})) {
-      const location = prefix ? `${prefix} > ${name}` : name;
-      if (name === "elliptic") installed.push(location);
-      visit(item?.dependencies, location);
+  const visited = new Set();
+
+  function scanDirectory(directory) {
+    let realDirectory;
+    try {
+      realDirectory = fs.realpathSync(directory);
+    } catch (err) {
+      if (err && (err.code === "ENOENT" || err.code === "ENOTDIR")) return;
+      throw err;
+    }
+    if (visited.has(realDirectory)) return;
+    visited.add(realDirectory);
+
+    let entries;
+    try {
+      entries = fs.readdirSync(directory, { withFileTypes: true });
+    } catch (err) {
+      if (err && (err.code === "ENOENT" || err.code === "ENOTDIR")) return;
+      throw err;
+    }
+
+    for (const entry of entries) {
+      const itemPath = path.join(directory, entry.name);
+      if (entry.name === "package.json" && entry.isFile()) {
+        const metadata = JSON.parse(fs.readFileSync(itemPath, "utf8"));
+        if (metadata.name === "elliptic") installed.push(itemPath);
+        continue;
+      }
+      if (entry.isDirectory() || entry.isSymbolicLink()) {
+        scanDirectory(itemPath);
+      }
     }
   }
-  visit(tree.dependencies);
+
+  if (fs.existsSync(nodeModules)) scanDirectory(nodeModules);
 
   if (installed.length > 0) {
-    for (const name of installed) console.error(`elliptic present in installed dependency tree: ${name}`);
+    for (const name of installed) console.error(`elliptic present in installed dependency tree: ${path.relative(root, name)}`);
     process.exit(1);
   }
-  if (result.status !== 0) {
-    process.stderr.write(result.stderr || "");
-    throw new Error("npm ls --all reported an invalid dependency tree");
-  }
-  console.log("dependency tree policy: elliptic is absent from package-lock and the installed npm tree");
+  console.log("dependency tree policy: elliptic is absent from package-lock and installed package manifests");
 }
 
 function audit() {

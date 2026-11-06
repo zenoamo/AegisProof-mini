@@ -129,7 +129,7 @@ circuit.r1cs
 circuit.mini.zkey
 verification_key.json
   ↓
-SHA-256 manifest    ← prove / verify / integrity が照合する
+SHA-256 manifest    ← prove / verify / verify-artifacts が照合する
   ↓
 optional ML-DSA-87  ← sign / authenticity。verify は呼ばない
 ```
@@ -239,10 +239,29 @@ npm run integrity
 証明と検証のコマンドは次です。秘密の具体値はここに書きません。`commit` は公開 commitment だけを標準出力へ出します。`--secret` はプロセス一覧から見えることがある、と CLI が警告します。入力 JSON はコミットしないでください。
 
 ```bash
-node src/cli/index.js commit --secret <decimal>
-node src/cli/index.js prove --input input.json --output proof.json
+node src/cli/index.js --help
+node src/cli/index.js --version
+node src/cli/index.js prove --input input.json
 node src/cli/index.js verify --proof proof.json
-node src/cli/index.js integrity
+node src/cli/index.js verify-artifacts
+node src/cli/index.js inspect
+node src/cli/index.js doctor
+```
+
+`package.json` の bin 名は `aegis` です。`npm install` のあと、`node_modules/.bin/aegis` が同じ入口です。
+
+| コマンド | 役割 |
+| --- | --- |
+| `prove` | Groth16 proof の生成。`--output` を省くと作業ディレクトリの `proof.json` |
+| `verify` | proof の数学的検証 |
+| `verify-artifacts` | Artifact の整合性検証。`integrity` と同じ検査 |
+| `inspect` | Manifest・バージョン情報 |
+| `doctor` | 実行環境の診断 |
+
+`commit`、`sign`、`authenticity`、`key-info`、`keys-check` は同じ入口に残しています。
+
+```bash
+node src/cli/index.js commit --secret <decimal>
 ```
 
 `input.json` の形は次です。値は正規化された 10 進文字列です。`commitment`、`nullifier`、`contextHash` は省くと実装が計算します。渡した場合は、計算結果と一致しないと回路が拒否します。
@@ -256,7 +275,7 @@ node src/cli/index.js integrity
 }
 ```
 
-`package.json` の `scripts` は `npm test`、`npm run integrity`、`npm run keys:check`、`npm run key-info`、`npm run prove`、`npm run verify`、`npm run build` です。分割したテストは `test:positive`、`test:negative`、`test:tamper`、`test:authenticity` です。Sepolia 用は `sepolia:export-verifier`、`sepolia:test`、`sepolia:deploy`、`sepolia:verify`、`sepolia:verify:tx` です。
+`package.json` の `scripts` は `npm test`、`npm run verify-artifacts`、`npm run inspect`、`npm run doctor`、`npm run integrity`、`npm run keys:check`、`npm run key-info`、`npm run prove`、`npm run verify`、`npm run build` です。分割したテストは `test:positive`、`test:negative`、`test:tamper`、`test:authenticity` です。Sepolia 用は `sepolia:export-verifier`、`sepolia:test`、`sepolia:deploy`、`sepolia:verify`、`sepolia:verify:tx` です。
 
 ## 10. Integrity verification
 
@@ -280,7 +299,7 @@ verification_key.json
 3. 各ファイルの SHA-256 が manifest の記録と違う
 4. `files` があるとき、記録された path、SHA-256、バイト数がファイルと違う
 
-`prove` と `verify` と `integrity` と `sign` はこの検査を通りません。不一致のときは処理を止めます。検査を外すフラグはありません。CLI の完全性失敗は終了コード 2 です。
+`prove` と `verify` と `verify-artifacts` と `integrity` と `sign` はこの検査を通りません。不一致のときは処理を止めます。検査を外すフラグはありません。CLI の完全性失敗は終了コード 2 です。`verify-artifacts` は `integrity` と同じ検査です。
 
 `npm run keys:check` は、この自己一致に加え、`snarkjs.r1cs.info` と `snarkjs.zKey.exportVerificationKey` で r1cs と zkey と verification key の対応を見ます。さらに `artifacts/baseline.json` とも比べます。`npm run key-info` は、baseline との比較を除いた公開フィンガープリントを出します。秘密は出しません。詳細は [docs/KEY_MANAGEMENT.md](docs/KEY_MANAGEMENT.md) です。
 

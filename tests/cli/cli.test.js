@@ -10,9 +10,9 @@ import { ARTIFACTS, PROJECT_ROOT } from "../../src/constants.js";
 import { sha256File } from "../../src/integrity/hash.js";
 import { poseidonCommitment } from "../../src/commitment.js";
 
-function run(args) {
+function run(args, cwd = PROJECT_ROOT) {
   return spawnSync(process.execPath, [path.join(PROJECT_ROOT, "src", "cli", "index.js"), ...args], {
-    cwd: PROJECT_ROOT,
+    cwd,
     encoding: "utf8",
   });
 }
@@ -26,7 +26,7 @@ test("cli prove, verify, tamper, invalid input, and integrity", { timeout: 18000
   try {
     const commitment = await poseidonCommitment(BigInt(secret));
     fs.writeFileSync(inputPath, `${JSON.stringify({ secret, commitment })}\n`);
-    const proved = run(["prove", "--input", inputPath, "--output", proofPath]);
+    const proved = run(["prove", "--input", inputPath], dir);
     assert.equal(proved.status, 0, proved.stderr);
     assert.equal(`${proved.stdout}${proved.stderr}`.includes(secret), false);
     const proofText = fs.readFileSync(proofPath, "utf8");
@@ -121,4 +121,46 @@ test("cli refuses aliased writes onto protected artifacts", () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("cli help, version, verify-artifacts, inspect, and doctor", () => {
+  const help = run(["--help"]);
+  assert.equal(help.status, 0, help.stderr);
+  for (const line of [
+    "aegis prove --input <file> [--output <file>]",
+    "aegis verify --proof <file>",
+    "aegis verify-artifacts",
+    "aegis inspect",
+    "aegis doctor",
+    "Groth16 proof の生成",
+    "proof の数学的検証",
+    "Artifact の整合性検証",
+    "Manifest・バージョン情報",
+    "実行環境の診断",
+  ]) {
+    assert.equal(help.stdout.includes(line), true, line);
+  }
+
+  const version = run(["--version"]);
+  assert.equal(version.status, 0, version.stderr);
+  assert.equal(version.stdout.trim(), "aegisproof-mini-0.1.0");
+
+  const artifacts = run(["verify-artifacts"]);
+  assert.equal(artifacts.status, 0, artifacts.stderr);
+  assert.equal(artifacts.stdout.includes("verify-artifacts: ok"), true);
+
+  const inspect = run(["inspect"]);
+  assert.equal(inspect.status, 0, inspect.stderr);
+  assert.equal(inspect.stdout.includes("version aegisproof-mini-0.1.0"), true);
+  assert.equal(inspect.stdout.includes("schema aegisproof-mini-public-signals-v1"), true);
+  assert.equal(inspect.stdout.includes("protocol groth16"), true);
+
+  const doctor = run(["doctor"]);
+  assert.equal(doctor.status, 0, `${doctor.stdout}\n${doctor.stderr}`);
+  assert.equal(doctor.stdout.includes("doctor: ok"), true);
+  assert.equal(doctor.stdout.includes("integrity ok"), true);
+  assert.equal(doctor.stdout.includes("snarkjs ok 0.7.6"), true);
+
+  const unknown = run(["not-a-command"]);
+  assert.equal(unknown.status, 4);
 });

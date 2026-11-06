@@ -5,6 +5,7 @@
   "type": "module",
   "private": true,
   "bin": {
+    "aegis": "./src/cli/index.js",
     "aegisproof-mini": "./src/cli/index.js"
   },
   "exports": {
@@ -12,8 +13,12 @@
   },
   "scripts": {
     "build": "node scripts/build.js",
+    "aegis": "node src/cli/index.js",
     "prove": "node src/cli/index.js prove",
     "verify": "node src/cli/index.js verify",
+    "verify-artifacts": "node src/cli/index.js verify-artifacts",
+    "inspect": "node src/cli/index.js inspect",
+    "doctor": "node src/cli/index.js doctor",
     "integrity": "node src/cli/index.js integrity",
     "key-info": "node src/cli/index.js key-info",
     "keys:check": "node src/cli/index.js keys-check",

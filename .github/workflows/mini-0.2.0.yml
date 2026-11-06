@@ -1,6 +1,7 @@
 name: mini 0.2.0 experimental
 
 on:
+  workflow_dispatch:
   push:
   pull_request:
 

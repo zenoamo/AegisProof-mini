@@ -89,6 +89,7 @@ ML-DSA-87 は任意の artifact authenticity layer です。署名対象は、�
 | `underscore@1.13.8` | `snarkjs` → `bfj` → `jsonpath` が `1.13.6` を固定している。`1.13.8` は同じ 1.13 系の修正版 |
 | `@ethersproject/providers` の `ws@8.21.0` | `circomlibjs` が依存する ethers 5 が `ws@8.18.0` を固定している。Hardhat 自身の `ws@7` は対象外なので、全体の `ws` は上げていない |
 | `mocha` の `serialize-javascript@7.1.2` | Hardhat 2.29 の mocha 11 は `^6.0.2` のまま。mocha は関数として呼ぶだけで、7 系でもその形 |
+| `mocha` の `diff@8.0.4` | Hardhat 2.29 の mocha 11 は `diff@^7.0.0`。GHSA-73rr-hh4g-fpgx の修正は `8.0.3` 以降。mocha が呼ぶのは `createPatch` と `diffWordsWithSpace` だけ |
 | `hardhat` の `adm-zip@0.6.1` | Hardhat 2.29 は `^0.4.16`。使っているのは `new AdmZip(path)` と `extractAllTo` |
 | `hardhat` の `undici@6.29.0` | Hardhat 2.29 は undici 5。6.29 は `request`、`Pool`、`ProxyAgent`、`Client`、`Agent` を持つ 6 系の修正版。undici 7 以降には上げていない |
 | `hardhat` の `uuid@11.1.1` | 修正版は 11 系で、8 系には戻されていない。Hardhat は `v4` だけを動的 import する |
@@ -98,7 +99,7 @@ ML-DSA-87 は任意の artifact authenticity layer です。署名対象は、�
 
 `ethers` 6 は `^6.17.0` です。この版が直接依存する `ws` は `8.21.0` で、8.20.1 未満の修正範囲に入ります。
 
-`elliptic@6.6.1` は `circomlibjs` → ethers 5 から入ります。公開されている最新版が 6.6.1 であり、置き換える修正版はありません。`snarkjs`、`circomlib`、`circomlibjs`、Hardhat 3 への major 更新では解消していません。mocha 11 配下の `diff@7` も、Hardhat 2.29 の `mocha@^11` の範囲では修正版 `8.0.3` に届きません。どちらも Low で、crypto-security workflow は記録し、その Low だけでは失敗にしません。Critical または High が出たときは失敗します。workflow は `npm audit fix` を実行しません。
+`elliptic@6.6.1` は `circomlibjs` → ethers 5 と、Hardhat 2.29 の `@ethersproject/abi` から入ります。ECDSA の `k` 生成（CVE-2025-14505）に修正版はなく、公開されている最新版が 6.6.1 です。`snarkjs`、`circomlib`、`circomlibjs`、Hardhat 3 への major 更新では解消していません。この Low は crypto-security workflow が記録し、それだけでは失敗にしません。Critical または High が出たときは失敗します。workflow は `npm audit fix` を実行しません。
 
 circom は pragma `2.2.2`、このスナップショットのコンパイラ記録は `2.2.3` です。PATH にその版が無いとき、ビルドは公式リリースのバイナリをメモリへ取得します。取得 URL はスクリプト内の `v2.2.3` 固定文字列で、pin ファイルの `source` や `file` は URL に使いません。pin と一致しない配布元は拒否します。SHA-256 は `tools/circom-2.2.3-sha256.json` の既存の値と比べ、一致したバイト列だけを排他作成した一時ファイルへ書き、そのあと `--version` を実行します。不一致のバイト列は書き込まず、実行しません。キャッシュへ保存するのも、その検証後のバイト列です。
 

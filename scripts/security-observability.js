@@ -226,6 +226,49 @@ function printAudit(label, report) {
   return (counts.critical || 0) > 0 || (counts.high || 0) > 0;
 }
 
+function dependencyTree() {
+  const lock = JSON.parse(fs.readFileSync(path.join(root, "package-lock.json"), "utf8"));
+  const lockMatches = Object.keys(lock.packages || {}).filter((name) =>
+    name === "node_modules/elliptic" || name.endsWith("/node_modules/elliptic")
+  );
+  if (lockMatches.length > 0) {
+    for (const name of lockMatches) console.error(`elliptic present in package-lock: ${name}`);
+    process.exit(1);
+  }
+
+  const result = spawnSync("npm", ["ls", "--all", "--json"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  let tree;
+  try {
+    tree = JSON.parse(result.stdout || "{}");
+  } catch {
+    process.stderr.write(result.stderr || result.stdout || "");
+    throw new Error("npm ls --all did not return valid JSON");
+  }
+
+  const installed = [];
+  function visit(dependencies, prefix = "") {
+    for (const [name, item] of Object.entries(dependencies || {})) {
+      const location = prefix ? `${prefix} > ${name}` : name;
+      if (name === "elliptic") installed.push(location);
+      visit(item?.dependencies, location);
+    }
+  }
+  visit(tree.dependencies);
+
+  if (installed.length > 0) {
+    for (const name of installed) console.error(`elliptic present in installed dependency tree: ${name}`);
+    process.exit(1);
+  }
+  if (result.status !== 0) {
+    process.stderr.write(result.stderr || "");
+    throw new Error("npm ls --all reported an invalid dependency tree");
+  }
+  console.log("dependency tree policy: elliptic is absent from package-lock and the installed npm tree");
+}
+
 function audit() {
   const production = npmAudit(["--omit=dev"]);
   const full = npmAudit([]);
@@ -300,6 +343,7 @@ function sarif(dir) {
 
 if (command === "static") staticScan();
 else if (command === "audit") audit();
+else if (command === "dependencies") dependencyTree();
 else if (command === "fingerprint") fingerprint();
 else if (command === "sarif") sarif(process.argv[3] || "codeql-sarif");
 else {

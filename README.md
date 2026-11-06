@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/banner.png" alt="AegisProof-mini" width="100%">
+</p>
+
 # AegisProof-mini
 
 [![CI](https://github.com/zenoamo/AegisProof-mini/actions/workflows/ci.yml/badge.svg)](https://github.com/zenoamo/AegisProof-mini/actions/workflows/ci.yml)

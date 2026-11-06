@@ -95,3 +95,36 @@ test("cli prove, verify, tamper, invalid input, and integrity", { timeout: 18000
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("cli refuses aliased writes onto protected artifacts", () => {
+  const zkey = path.join(PROJECT_ROOT, ARTIFACTS["circuit.zkey"]);
+  const before = sha256File(zkey);
+  const dir = mkdtempSync(path.join(tmpdir(), "aegisproof-mini-alias-"));
+  const outputs = [];
+  if (process.platform === "win32") {
+    outputs.push(zkey.replace(/[A-Za-z]/g, (char) => (
+      char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase()
+    )));
+    outputs.push(`${zkey}::$DATA`);
+  }
+  const link = path.join(dir, "proof.json");
+  let symlinkCode = "created";
+  try {
+    fs.symlinkSync(zkey, link);
+  } catch (error) {
+    symlinkCode = error.code;
+  }
+  if (symlinkCode === "created") outputs.push(link);
+  try {
+    assert.ok(outputs.length > 0 || symlinkCode === "EPERM");
+    for (const output of outputs) {
+      const result = run(["prove", "--input", path.join(dir, "input.json"), "--output", output]);
+      assert.equal(result.status, 4, `${output}\n${result.stderr}`);
+      assert.match(result.stderr, /保護された成果物パスへは出力できません/);
+      assert.equal(sha256File(zkey), before);
+    }
+    if (symlinkCode !== "created") assert.equal(symlinkCode, "EPERM");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

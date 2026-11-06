@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { buildPoseidon } from "circomlibjs";
+import { buildPoseidon } from "./circomlib-poseidon.js";
 import { BN254_SCALAR_FIELD } from "./constants.js";
 
 let poseidonPromise;

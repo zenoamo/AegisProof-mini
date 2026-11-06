@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { buildPoseidon } from "circomlibjs";
+import { buildPoseidon } from "../../src/circomlib-poseidon.js";
 import { ARTIFACTS, PROJECT_ROOT } from "../src/constants.js";
 import { guestFromParts } from "../src/guest.js";
 import { statementBindings } from "../src/review.js";

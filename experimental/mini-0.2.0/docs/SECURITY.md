@@ -82,10 +82,11 @@ ML-DSA-87 は任意の artifact authenticity layer です。署名対象は、�
 
 実行時の依存は `package.json` と `package-lock.json` で固定します。manifest の対象に `node_modules` は入りません。CI は `npm ci` を使います。ロックファイルに無いパッケージを検証の前提にしないでください。
 
-`package.json` の `overrides` は、親パッケージの semver 範囲では修正版に届かない transitive dependency だけを、その親の呼び出し方を確認したうえで差し替えています。直接依存には加えていません。
+`package.json` の `overrides` は、親パッケージの semver 範囲では修正版に届かない transitive dependency だけを、その親の呼び出し方を確認したうえで差し替えています。`@ethersproject/signing-key` だけは、`npm ci` が lockfile と一致するよう `file:` の直接依存にし、override はその直接依存を指します。それ以外は直接依存にしていません。
 
 | override | 理由 |
 | --- | --- |
+| `@ethersproject/signing-key`（`file:overrides/ethers-signing-key`） | ethers 5 が `new SigningKey` と `signDigest` のために `elliptic@6.6.1` を固定している。このリポジトリはその呼び出しをしない。差し替え先は署名実装を持たず、`elliptic` を依存にしない |
 | `underscore@1.13.8` | `snarkjs` → `bfj` → `jsonpath` が `1.13.6` を固定している。`1.13.8` は同じ 1.13 系の修正版 |
 | `@ethersproject/providers` の `ws@8.21.0` | `circomlibjs` が依存する ethers 5 が `ws@8.18.0` を固定している。Hardhat 自身の `ws@7` は対象外なので、全体の `ws` は上げていない |
 | `mocha` の `serialize-javascript@7.1.2` | Hardhat 2.29 の mocha 11 は `^6.0.2` のまま。mocha は関数として呼ぶだけで、7 系でもその形 |
@@ -99,7 +100,7 @@ ML-DSA-87 は任意の artifact authenticity layer です。署名対象は、�
 
 `ethers` 6 は `^6.17.0` です。この版が直接依存する `ws` は `8.21.0` で、8.20.1 未満の修正範囲に入ります。
 
-`elliptic@6.6.1` は `circomlibjs` → ethers 5 と、Hardhat 2.29 の `@ethersproject/abi` から入ります。ECDSA の `k` 生成（CVE-2025-14505）に修正版はなく、公開されている最新版が 6.6.1 です。`snarkjs`、`circomlib`、`circomlibjs`、Hardhat 3 への major 更新では解消していません。この Low は crypto-security workflow が記録し、それだけでは失敗にしません。Critical または High が出たときは失敗します。workflow は `npm audit fix` を実行しません。
+`elliptic` は依存ツリーに入りません。公開版の最新は `6.6.1` で、ECDSA の `k` 生成（CVE-2025-14505、GHSA-848j-6mx2-7j84）に修正版はありません。入り道は ethers 5 の `@ethersproject/signing-key` だけで、回路外の Poseidon は `circomlibjs` の wasm を直接読みます。署名は直接依存の ethers 6 です。`npm audit fix --force` が示す `circomlibjs@0.0.8` への降格はしません。workflow は `npm audit fix` を実行しません。Critical または High が出たときは失敗します。
 
 circom は pragma `2.2.2`、このスナップショットのコンパイラ記録は `2.2.3` です。PATH にその版が無いとき、ビルドは公式リリースのバイナリをメモリへ取得します。取得 URL はスクリプト内の `v2.2.3` 固定文字列で、pin ファイルの `source` や `file` は URL に使いません。pin と一致しない配布元は拒否します。SHA-256 は `tools/circom-2.2.3-sha256.json` の既存の値と比べ、一致したバイト列だけを排他作成した一時ファイルへ書き、そのあと `--version` を実行します。不一致のバイト列は書き込まず、実行しません。キャッシュへ保存するのも、その検証後のバイト列です。
 

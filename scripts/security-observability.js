@@ -274,11 +274,36 @@ function dependencyTree() {
 
   if (fs.existsSync(nodeModules)) scanDirectory(nodeModules);
 
+  const result = spawnSync("npm", ["ls", "--all", "--json"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  let tree;
+  try {
+    tree = JSON.parse(result.stdout || "{}");
+  } catch {
+    process.stderr.write(result.stderr || result.stdout || "");
+    throw new Error("npm ls --all did not return valid JSON");
+  }
+
+  function visit(dependencies, prefix = "") {
+    for (const [name, item] of Object.entries(dependencies || {})) {
+      const location = prefix ? `${prefix} > ${name}` : name;
+      if (name === "elliptic") installed.push(`npm ls: ${location}`);
+      visit(item?.dependencies, location);
+    }
+  }
+  visit(tree.dependencies);
+
   if (installed.length > 0) {
     for (const name of installed) console.error(`elliptic present in installed dependency tree: ${path.relative(root, name)}`);
     process.exit(1);
   }
-  console.log("dependency tree policy: elliptic is absent from package-lock and installed package manifests");
+  if (result.status !== 0) {
+    process.stderr.write(result.stderr || "");
+    throw new Error("npm ls --all reported an invalid dependency tree");
+  }
+  console.log("dependency tree policy: elliptic is absent from package-lock, installed manifests, and npm ls");
 }
 
 function audit() {

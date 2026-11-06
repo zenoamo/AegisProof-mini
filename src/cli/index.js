@@ -7,11 +7,13 @@ import { parseArgs } from "node:util";
 import {
   ARTIFACTS,
   MANIFEST_REL,
+  MANIFEST_SHA_REL,
   MAX_INPUT_BYTES,
   MAX_PROOF_BYTES,
   ML_DSA_ALGORITHM,
   ML_DSA_CONTEXT,
   PROJECT_ROOT,
+  SCHEMA,
   VERSION,
 } from "../constants.js";
 import { AuthenticityError, InputError, IntegrityError, ProofError } from "../errors.js";
@@ -39,20 +41,36 @@ const PROTECTED = new Set([
 ]);
 
 function helpText() {
-  return `aegisproof-mini ${VERSION}
+  return `aegis ${VERSION}
 
 実験用の最小証明・検証・完全性ツールです。AegisProof v2 ではありません。
 
 使い方:
-  aegisproof-mini prove --input <file> --output <file>
-  aegisproof-mini verify --proof <file>
-  aegisproof-mini integrity
-  aegisproof-mini key-info
-  aegisproof-mini keys-check
-  aegisproof-mini test
-  aegisproof-mini commit --secret <decimal>
-  aegisproof-mini sign --public-key-out <file> --signature-out <file> [--secret-key-out <file>]
-  aegisproof-mini authenticity --public-key <file> --signature <file>
+  aegis --help
+  aegis --version
+  aegis prove --input <file> [--output <file>]
+  aegis verify --proof <file>
+  aegis verify-artifacts
+  aegis inspect
+  aegis doctor
+
+コマンド:
+  prove             Groth16 proof の生成
+  verify            proof の数学的検証
+  verify-artifacts  Artifact の整合性検証
+  inspect           Manifest・バージョン情報
+  doctor            実行環境の診断
+
+--output を省くと、作業ディレクトリへ proof.json を書きます。
+
+同じ入口の追加コマンド:
+  integrity
+  key-info
+  keys-check
+  test
+  commit --secret <decimal>
+  sign --public-key-out <file> --signature-out <file> [--secret-key-out <file>]
+  authenticity --public-key <file> --signature <file>
 `;
 }
 
@@ -147,18 +165,19 @@ async function commandProve(args) {
     input: { type: "string" },
     output: { type: "string" },
   });
-  if (!flags.input || !flags.output) fail(helpText(), 4);
-  if (samePath(flags.input, flags.output)) fail("入力と出力に同じパスは使えません", 4);
-  assertSafeOutput(flags.output);
+  if (!flags.input) fail(helpText(), 4);
+  const output = flags.output ?? path.resolve(process.cwd(), "proof.json");
+  if (samePath(flags.input, output)) fail("入力と出力に同じパスは使えません", 4);
+  assertSafeOutput(output);
   const input = readJson(flags.input, MAX_INPUT_BYTES, "入力JSONを解釈できません");
   try {
-    await proveToFile(input, flags.output);
+    await proveToFile(input, output);
   } catch (err) {
     if (err instanceof IntegrityError) fail(err.message, 2);
     if (err instanceof InputError || err instanceof ProofError) fail(err.message, 3);
     fail("証明の生成に失敗しました", 3);
   }
-  console.log(`証明を書きました: ${flags.output}`);
+  console.log(`証明を書きました: ${output}`);
 }
 
 async function commandVerify(args) {
@@ -175,11 +194,11 @@ async function commandVerify(args) {
   console.log("検証に成功しました");
 }
 
-async function commandIntegrity(args) {
+async function commandIntegrity(args, label = "integrity") {
   if (args.length) fail(helpText(), 4);
   try {
     const result = await checkIntegrity();
-    console.log("integrity: ok");
+    console.log(`${label}: ok`);
     for (const [name, hash] of Object.entries(result.artifacts)) {
       console.log(`${name} ${hash}`);
     }
@@ -188,6 +207,136 @@ async function commandIntegrity(args) {
     if (err instanceof IntegrityError) fail(err.message, 2);
     fail("完全性検証に失敗しました", 2);
   }
+}
+
+async function commandInspect(args) {
+  if (args.length) fail(helpText(), 4);
+  let result;
+  try {
+    result = await checkIntegrity();
+  } catch (err) {
+    if (err instanceof IntegrityError) fail(err.message, 2);
+    fail("完全性検証に失敗しました", 2);
+  }
+  const manifest = result.manifest;
+  const circuit = manifest.circuit || {};
+  const proofSystem = manifest.proofSystem || {};
+  const ceremony = manifest.ceremony || {};
+  console.log(`version ${result.version}`);
+  console.log(`schema ${SCHEMA}`);
+  console.log(`protocol ${proofSystem.protocol ?? ""}`);
+  console.log(`curve ${proofSystem.curve ?? ""}`);
+  console.log(`snarkjsCurve ${proofSystem.snarkjsCurveName ?? ""}`);
+  console.log(`constraints ${circuit.constraints ?? ""}`);
+  console.log(`privateInputs ${circuit.privateInputs ?? ""}`);
+  console.log(`publicInputs ${circuit.publicInputs ?? ""}`);
+  console.log(`publicSignals ${Array.isArray(circuit.publicSignals) ? circuit.publicSignals.join(",") : ""}`);
+  console.log(`nPublic ${manifest.binding?.nPublic ?? ""}`);
+  console.log(`ceremony production=${ceremony.production} contributors=${ceremony.contributors}`);
+  for (const [name, hash] of Object.entries(result.artifacts)) {
+    console.log(`${name} ${hash}`);
+  }
+  console.log(`manifest.sha256 ${result.manifestSha256}`);
+  const toolchain = manifest.toolchain || {};
+  for (const key of ["node", "snarkjs", "circomlib", "circomlibjs"]) {
+    if (toolchain[key]) console.log(`toolchain.${key} ${toolchain[key]}`);
+  }
+  if (circuit.circom) console.log(`toolchain.circom ${circuit.circom}`);
+}
+
+function readPackageManifest() {
+  return JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, "package.json"), "utf8"));
+}
+
+function installedVersion(name) {
+  const pkgPath = path.join(PROJECT_ROOT, "node_modules", ...name.split("/"), "package.json");
+  try {
+    const parsed = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    return typeof parsed.version === "string" ? parsed.version : null;
+  } catch {
+    return null;
+  }
+}
+
+function declaredVersion(pkg, name) {
+  const declared = pkg.dependencies?.[name];
+  return typeof declared === "string" ? declared : null;
+}
+
+function versionMatches(declared, actual) {
+  if (!declared || !actual) return false;
+  return declared.replace(/^[\^~]/, "") === actual;
+}
+
+function regularFile(file) {
+  try {
+    const stat = fs.statSync(file);
+    return stat.isFile() && stat.size > 0;
+  } catch {
+    return false;
+  }
+}
+
+function circomStatus() {
+  const child = spawnSync("circom", ["--version"], {
+    encoding: "utf8",
+    timeout: 5000,
+    windowsHide: true,
+  });
+  if (child.error || child.status !== 0) return { present: false, detail: "" };
+  const text = `${child.stdout || ""}\n${child.stderr || ""}`
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .pop();
+  return { present: true, detail: text || "" };
+}
+
+async function commandDoctor(args) {
+  if (args.length) fail(helpText(), 4);
+  const pkg = readPackageManifest();
+  const checks = [];
+  const report = (name, ok, detail = "") => {
+    checks.push({ name, ok });
+    console.log(`${name} ${ok ? "ok" : "fail"}${detail ? ` ${detail}` : ""}`);
+  };
+
+  const nodeRange = pkg.engines?.node || ">=20";
+  const nodeMajor = Number(process.versions.node.split(".")[0]);
+  const requiredMajor = Number(/^>=(\d+)/.exec(nodeRange)?.[1] ?? 20);
+  report("node", Number.isInteger(nodeMajor) && nodeMajor >= requiredMajor, `${process.version} engines=${nodeRange}`);
+
+  for (const name of ["snarkjs", "circomlib", "circomlibjs", "@noble/post-quantum"]) {
+    const actual = installedVersion(name);
+    const declared = declaredVersion(pkg, name);
+    report(name, versionMatches(declared, actual), actual ?? "missing");
+  }
+
+  const requiredFiles = [...Object.values(ARTIFACTS), MANIFEST_REL, MANIFEST_SHA_REL];
+  const missing = requiredFiles.filter((rel) => !regularFile(path.join(PROJECT_ROOT, rel)));
+  report("artifacts", missing.length === 0, missing.join(","));
+
+  let integrityOk = false;
+  let integrityMessage = "完全性検証に失敗しました";
+  try {
+    await checkIntegrity();
+    integrityOk = true;
+    integrityMessage = "";
+  } catch (err) {
+    if (err instanceof IntegrityError && err.message) integrityMessage = err.message;
+  }
+  report("integrity", integrityOk);
+
+  const circom = circomStatus();
+  console.log(`circom ${circom.present ? "present" : "absent"}${circom.detail ? ` ${circom.detail}` : ""}`);
+
+  if (checks.every((item) => item.ok)) {
+    console.log("doctor: ok");
+    return;
+  }
+  if (integrityMessage) console.error(integrityMessage);
+  console.log("doctor: fail");
+  process.exit(integrityOk ? 1 : 2);
 }
 
 function printKeyReport(report) {
@@ -355,6 +504,9 @@ if (command === "--version" || command === "version") {
 const commands = {
   prove: commandProve,
   verify: commandVerify,
+  "verify-artifacts": (args) => commandIntegrity(args, "verify-artifacts"),
+  inspect: commandInspect,
+  doctor: commandDoctor,
   integrity: commandIntegrity,
   "key-info": commandKeyInfo,
   "keys-check": commandKeysCheck,

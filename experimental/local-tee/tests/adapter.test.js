@@ -173,6 +173,51 @@ describe("local tee adapter", () => {
     assert.equal(parsed.commitment, result.commitment);
   });
 
+  test("a witness under another name does not enter the public result", async () => {
+    const signalsFor = (request) => [
+      request.commitment,
+      request.nullifier,
+      request.contextHash,
+      request.policyId,
+      request.epoch,
+    ];
+    await assert.rejects(
+      adapterWith(backendReturning(async (request) => ({
+        commitment: request.commitment,
+        witness: request.secret,
+        envelope: proofShape(signalsFor(request)),
+      }))).prove(request()),
+      /バックエンド応答が不正です/,
+    );
+    const result = await adapterWith(backendReturning(async (request) => {
+      const shape = proofShape(signalsFor(request));
+      return {
+        commitment: request.commitment,
+        envelope: {
+          ...shape,
+          witness: request.secret,
+          proof: { ...shape.proof, witness: request.secret },
+        },
+      };
+    })).prove(request());
+    assert.equal(JSON.stringify(result).includes(SECRET), false);
+    assert.equal(Object.hasOwn(result.proofEnvelope, "witness"), false);
+    assert.equal(Object.hasOwn(result.proofEnvelope.proof, "witness"), false);
+    await assert.rejects(
+      adapterWith(backendReturning(async (request) => {
+        const shape = proofShape(signalsFor(request));
+        return {
+          commitment: request.commitment,
+          envelope: {
+            ...shape,
+            proof: { ...shape.proof, pi_a: [...shape.proof.pi_a, request.secret] },
+          },
+        };
+      })).prove(request()),
+      /証明エンベロープの形式が不正です/,
+    );
+  });
+
   test("rejects invalid, missing, and unknown request fields", async () => {
     const adapter = adapterWith(acceptingBackend());
     await assert.rejects(adapter.prove(request({ secret: "12abc34" })), (err) => {
@@ -233,7 +278,6 @@ describe("local tee adapter", () => {
     );
     await assert.rejects(
       adapterWith(backendReturning(async (request) => ({
-        valid: true,
         commitment: request.commitment,
         envelope: proofShape(["1", request.nullifier, request.contextHash, request.policyId, request.epoch]),
       }))).prove(request()),

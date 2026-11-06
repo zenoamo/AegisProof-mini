@@ -57,8 +57,22 @@ const PROTECTED_REL = Object.freeze([
 ]);
 
 export function assertOutputAllowed(relPath) {
-  const rel = String(relPath).replaceAll("\\", "/");
-  if (PROTECTED_REL.includes(rel) || !rel.startsWith("frozencore/dev/")) {
+  if (typeof relPath !== "string" || relPath.length === 0 || relPath.includes("\0")) {
+    throw new ProofError("このパスには成果物を書きません", "ARTIFACT");
+  }
+  const portable = relPath.replaceAll("\\", "/");
+  if (portable.startsWith("/") || /^[a-zA-Z]:/.test(portable)) {
+    throw new ProofError("このパスには成果物を書きません", "ARTIFACT");
+  }
+  const normalized = path.posix.normalize(portable);
+  if (
+    normalized === "." ||
+    normalized === ".." ||
+    normalized.startsWith("../") ||
+    path.posix.isAbsolute(normalized) ||
+    PROTECTED_REL.includes(normalized) ||
+    !normalized.startsWith("frozencore/dev/")
+  ) {
     throw new ProofError("このパスには成果物を書きません", "ARTIFACT");
   }
 }

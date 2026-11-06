@@ -44,4 +44,7 @@ test("development keys and unset external checks do not become production succes
   assert.throws(() => assertOutputAllowed("frozencore/keys/statement_verification_key.json"), ProofError);
   assert.throws(() => assertOutputAllowed("frozencore/setup/statement/pot_final.ptau"), ProofError);
   assert.doesNotThrow(() => assertOutputAllowed("frozencore/dev/statement/statement.zkey"));
+  assert.throws(() => assertOutputAllowed("frozencore/dev/../../circuit/mini.zkey"), ProofError);
+  assert.throws(() => assertOutputAllowed("frozencore\\dev\\..\\..\\keys\\verification_key.json"), ProofError);
+  assert.doesNotThrow(() => assertOutputAllowed("frozencore/dev/../dev/statement/statement.zkey"));
 });

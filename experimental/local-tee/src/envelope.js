@@ -38,6 +38,70 @@ export function assertNoSecretField(value, label) {
   }
 }
 
+function coordinate(value) {
+  if (typeof value !== "string") {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  return value;
+}
+
+function g1(values) {
+  if (!Array.isArray(values) || values.length < 3) {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  return [coordinate(values[0]), coordinate(values[1]), coordinate(values[2])];
+}
+
+function g2(values) {
+  if (!Array.isArray(values) || values.length < 3) {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  return [0, 1, 2].map((index) => {
+    const row = values[index];
+    if (!Array.isArray(row) || row.length < 2) {
+      throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+    }
+    return [coordinate(row[0]), coordinate(row[1])];
+  });
+}
+
+// Copies only the public Groth16 envelope. Extra names, including a witness
+// stored under another key, are left behind.
+export function publicProofEnvelope(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  if (typeof value.version !== "string" || typeof value.schema !== "string") {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  if (typeof value.protocol !== "string" || typeof value.curve !== "string") {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  if (!Array.isArray(value.publicSignals) || value.publicSignals.some((item) => typeof item !== "string")) {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  if (!value.proof || typeof value.proof !== "object" || Array.isArray(value.proof)) {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  if (typeof value.proof.protocol !== "string" || typeof value.proof.curve !== "string") {
+    throw new TeeBoundaryError("証明エンベロープの形式が不正です");
+  }
+  return {
+    version: value.version,
+    schema: value.schema,
+    protocol: value.protocol,
+    curve: value.curve,
+    publicSignals: value.publicSignals.map((item) => item),
+    proof: {
+      protocol: value.proof.protocol,
+      curve: value.proof.curve,
+      pi_a: g1(value.proof.pi_a),
+      pi_b: g2(value.proof.pi_b),
+      pi_c: g1(value.proof.pi_c),
+    },
+  };
+}
+
 export function createPublicResult({ backend, commitment, proofEnvelope }) {
   const result = {
     schema: LOCAL_TEE_SCHEMA,
@@ -57,7 +121,7 @@ export function createPublicResult({ backend, commitment, proofEnvelope }) {
       attestation: null,
     },
     commitment,
-    proofEnvelope,
+    proofEnvelope: publicProofEnvelope(proofEnvelope),
   };
   assertNoSecretField(result, "公開結果");
   assertNoSecretField(result.proofEnvelope, "証明エンベロープ");
@@ -93,6 +157,27 @@ export function parsePublicResult(value) {
   if (!value.verified || value.verified.hardwareIsolation !== false || value.verified.remoteAttestation !== false || value.verified.attestation !== null) {
     throw new TeeBoundaryError("検証済みの TEE 保証として扱える結果ではありません");
   }
-  assertNoSecretField(value.proofEnvelope, "証明エンベロープ");
-  return value;
+  if (typeof value.backend.id !== "string" || typeof value.backend.kind !== "string") {
+    throw new TeeBoundaryError("公開結果の形式が不正です");
+  }
+  return {
+    schema: value.schema,
+    version: value.version,
+    backend: {
+      id: value.backend.id,
+      kind: value.backend.kind,
+      claims: {
+        hardwareIsolation: false,
+        remoteAttestation: false,
+      },
+      attestation: null,
+    },
+    verified: {
+      hardwareIsolation: false,
+      remoteAttestation: false,
+      attestation: null,
+    },
+    commitment: value.commitment,
+    proofEnvelope: publicProofEnvelope(value.proofEnvelope),
+  };
 }

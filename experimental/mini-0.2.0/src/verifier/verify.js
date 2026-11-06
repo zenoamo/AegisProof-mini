@@ -59,12 +59,29 @@ export async function verifyGroth16(vkey, publicSignals, proof) {
   });
 }
 
+function copyProof(proof) {
+  return {
+    protocol: proof.protocol,
+    curve: proof.curve,
+    pi_a: proof.pi_a.slice(0, 3),
+    pi_b: proof.pi_b.slice(0, 3).map((row) => (Array.isArray(row) ? row.slice(0, 2) : row)),
+    pi_c: proof.pi_c.slice(0, 3),
+  };
+}
+
 export function readEnvelope(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   if (value.version !== VERSION || value.schema !== SCHEMA) return null;
   if (value.protocol !== "groth16" || value.curve !== "bn254") return null;
   if (!isMiniPublicSignals(value.publicSignals) || !isGroth16Proof(value.proof)) return null;
-  return value;
+  return {
+    version: value.version,
+    schema: value.schema,
+    protocol: value.protocol,
+    curve: value.curve,
+    publicSignals: value.publicSignals.slice(),
+    proof: copyProof(value.proof),
+  };
 }
 
 export async function verify(envelope, root = PROJECT_ROOT) {

@@ -10,10 +10,12 @@ import {
   assertNoSecretField,
   createPublicResult,
   hasSecretField,
+  publicProofEnvelope,
 } from "./envelope.js";
 import { createLocalBackend } from "./local-backend.js";
 
 const REQUEST_KEYS = new Set(["secret", "context", "policyId", "epoch", "commitment"]);
+const RESPONSE_KEYS = new Set(["commitment", "envelope"]);
 
 function asBackendError(err, secret) {
   if (err instanceof TeeBoundaryError && (typeof secret !== "string" || !err.message.includes(secret))) {
@@ -77,11 +79,19 @@ function acceptBackendResult(response) {
   if (hasSecretField(response)) {
     throw new TeeBoundaryError("バックエンド応答に秘密入力が含まれています");
   }
+  for (const key of Object.keys(response)) {
+    if (!RESPONSE_KEYS.has(key)) {
+      throw new TeeBoundaryError("バックエンド応答が不正です");
+    }
+  }
   if (typeof response.commitment !== "string") {
     throw new TeeBoundaryError("バックエンド応答の commitment が不正です");
   }
   assertNoSecretField(response.envelope, "証明エンベロープ");
-  return response;
+  return {
+    commitment: response.commitment,
+    envelope: response.envelope,
+  };
 }
 
 export function createAdapter(backend = createLocalBackend(), deps = {}) {
@@ -132,10 +142,11 @@ export function createAdapter(backend = createLocalBackend(), deps = {}) {
       if (accepted.commitment !== statement.commitment) {
         throw new TeeBoundaryError("バックエンドの commitment が一致しません");
       }
-      const envelope = checkEnvelope(accepted.envelope);
-      if (!envelope) {
+      const parsed = checkEnvelope(accepted.envelope);
+      if (!parsed) {
         throw new TeeBoundaryError("証明エンベロープの形式が不正です");
       }
+      const envelope = publicProofEnvelope(parsed);
       if (envelope.publicSignals.length !== statement.publicSignals.length || envelope.publicSignals.some((value, index) => value !== statement.publicSignals[index])) {
         throw new TeeBoundaryError("公開シグナルが commitment と一致しません");
       }

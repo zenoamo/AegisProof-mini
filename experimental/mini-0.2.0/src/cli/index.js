@@ -84,21 +84,62 @@ function readJson(file, maxBytes, invalidMessage) {
   }
 }
 
-function assertSafeOutput(file) {
+function pathIdentity(file) {
+  if (typeof file !== "string" || file.length === 0 || file.includes("\0")) {
+    const error = new Error("protected output");
+    error.code = "PROTECTED_OUTPUT";
+    throw error;
+  }
   const resolved = path.resolve(file);
-  const root = path.resolve(PROJECT_ROOT);
-  const prefix = root.endsWith(path.sep) ? root : root + path.sep;
-  if (resolved !== root && !resolved.startsWith(prefix)) return;
-  const rel = path.relative(root, resolved).split(path.sep).join("/");
-  const normalized = process.platform === "win32" ? rel.toLowerCase() : rel;
-  const blocked = new Set(
-    [...PROTECTED].map((item) => (process.platform === "win32" ? item.toLowerCase() : item)),
-  );
-  if (blocked.has(normalized)) fail("保護された成果物パスへは出力できません", 4);
+  if (process.platform === "win32") {
+    const withoutDrive = /^[a-zA-Z]:/.test(resolved) ? resolved.slice(2) : resolved;
+    if (withoutDrive.includes(":")) {
+      const error = new Error("protected output");
+      error.code = "PROTECTED_OUTPUT";
+      throw error;
+    }
+  }
+  let cursor = resolved;
+  const missing = [];
+  while (!fs.existsSync(cursor)) {
+    const parent = path.dirname(cursor);
+    if (parent === cursor) break;
+    missing.push(path.basename(cursor));
+    cursor = parent;
+  }
+  let real = cursor;
+  try {
+    real = fs.realpathSync.native(cursor);
+  } catch {
+    real = cursor;
+  }
+  for (let index = missing.length - 1; index >= 0; index -= 1) {
+    real = path.join(real, missing[index]);
+  }
+  return process.platform === "win32" ? real.toLowerCase() : real;
+}
+
+function assertSafeOutput(file) {
+  let target;
+  try {
+    target = pathIdentity(file);
+  } catch (err) {
+    if (err && err.code === "PROTECTED_OUTPUT") fail("保護された成果物パスへは出力できません", 4);
+    throw err;
+  }
+  const blocked = [...PROTECTED].map((rel) => pathIdentity(path.join(PROJECT_ROOT, rel)));
+  if (blocked.includes(target) || target === pathIdentity(PROJECT_ROOT)) {
+    fail("保護された成果物パスへは出力できません", 4);
+  }
 }
 
 function samePath(left, right) {
-  return path.resolve(left) === path.resolve(right);
+  try {
+    return pathIdentity(left) === pathIdentity(right);
+  } catch (err) {
+    if (err && err.code === "PROTECTED_OUTPUT") fail("保護された成果物パスへは出力できません", 4);
+    throw err;
+  }
 }
 
 async function commandProve(args) {

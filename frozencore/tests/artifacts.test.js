@@ -58,6 +58,9 @@ test("protected paths are not write targets and the legacy build does not overwr
   assert.throws(() => assertOutputAllowed(LEGACY_STATEMENT_ZKEY), ProofError);
   assert.throws(() => assertOutputAllowed("circuit/mini.zkey"), ProofError);
   assert.doesNotThrow(() => assertOutputAllowed("frozencore/dev/statement/statement.zkey"));
+  assert.throws(() => assertOutputAllowed("frozencore/dev/../../circuit/mini.zkey"), ProofError);
+  assert.throws(() => assertOutputAllowed("frozencore\\dev\\..\\..\\keys\\verification_key.json"), ProofError);
+  assert.doesNotThrow(() => assertOutputAllowed("frozencore/dev/../dev/statement/statement.zkey"));
   const result = spawnSync(process.execPath, ["frozencore/scripts/build.js"], {
     cwd: PROJECT_ROOT,
     encoding: "utf8",

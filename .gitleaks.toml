@@ -1,0 +1,25 @@
+# Gitleaks config for public Groth16 artifact digests.
+# Extends the gitleaks 8.24.3 default rules. The generic-api-key regex is
+# repeated from that version so an allowlist can be appended without
+# dropping the rule. Keep GITLEAKS_VERSION in .github/workflows/code-scan.yml
+# on 8.24.3, and update this regex together with any version bump.
+title = "AegisProof-mini"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+regex = '''(?i)[\w.-]{0,50}?(?:access|auth|(?-i:[Aa]pi|API)|credential|creds|key|passw(?:or)?d|secret|token)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([\w.=-]{10,150}|[a-z0-9][a-z0-9+/]{11,}={0,3})(?:[\x60'"\s;]|\\[nr]|$)'''
+
+[[rules.allowlists]]
+description = "SHA-256 digests recorded for public Groth16 artifacts. Field names contain zkey or verification_key, which generic-api-key reads as a credential."
+condition = "AND"
+regexTarget = "secret"
+paths = [
+  '''(?:^|/)artifacts/manifest\.json$''',
+  '''(?:^|/)artifacts/baseline\.json$''',
+  '''(?:^|/)frozencore/dev/guest/manifest\.json$''',
+  '''(?:^|/)frozencore/dev/statement/manifest\.json$''',
+]
+regexes = ['''^[a-f0-9]{64}$''']

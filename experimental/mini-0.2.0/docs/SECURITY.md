@@ -146,6 +146,8 @@ proof validity
 
 秘密の実値、PEM 秘密鍵、弱い暗号 API（MD5、SHA-1、DES、3DES、RC4、ECB、暗号パス上の `Math.random()`）は `scripts/security-observability.js` が見ます。識別子、空の `.env.example`、公開アドレス、deployment の transaction hash、プレースホルダ、テスト用の明示的な非秘密値は失敗条件にしていません。GitHub の secret scanning の代わりにはしません。
 
+`.github/workflows/code-scan.yml` の Gitleaks は、push と pull request ではその範囲の commit を、schedule と `workflow_dispatch` では履歴全体を見ます。版は `8.24.3` です。`.gitleaks.toml` は既定ルールを拡張し、`generic-api-key` に allowlist を追加します。対象パスは `artifacts/manifest.json`、`artifacts/baseline.json`、`frozencore/dev/guest/manifest.json`、`frozencore/dev/statement/manifest.json` です。通す値は、そのパスにある小文字 64 桁の 16 進数です。これは公開成果物の SHA-256 で、フィールド名の `zkey` と `verification_key` に含まれる `key` が規則に掛かります。同じパスにある別の形の値、他のファイルにある 64 桁の 16 進数、PEM 秘密鍵は、これまでの規則の対象です。
+
 `.github/workflows/ci.yml` は、`keys:check` のあとに `npm run build` を実行し、そのジョブが作り直した開発用セレモニーの内部整合を見ます。コミット済み鍵との一致は、build 前の `keys:check` と crypto-security workflow が担当します。
 
 ## このプロジェクトが保証しないもの

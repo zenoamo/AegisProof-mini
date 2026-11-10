@@ -64,6 +64,8 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # .gitleaks.toml repeats generic-api-key from 8.24.3. Bump both together.
+          GITLEAKS_VERSION: "8.24.3"
 
   dependency-review:
     name: Dependency review (pull requests)
